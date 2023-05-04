@@ -21,8 +21,7 @@ import simulations.GeneralMesh;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        GeneralMesh generalMesh = new GeneralMesh(3, GeneralMesh.Configuration.SINGLEROW, 1, 1);
-
-        System.out.println("ok");
+        GeneralMesh generalMesh = new GeneralMesh(15, GeneralMesh.Configuration.SINGLEROW, 5, 1);
+        generalMesh.run();
     }
 }
