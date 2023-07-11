@@ -24,7 +24,7 @@ import java.util.PriorityQueue;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        GeneralMesh generalMesh = new GeneralMesh(15, GeneralMesh.Configuration.SINGLEROW, 5, 1, 1);
+        GeneralMesh generalMesh = new GeneralMesh(15, GeneralMesh.Configuration.SINGLEROW, 5, 1, 3);
         generalMesh.run();
 
 

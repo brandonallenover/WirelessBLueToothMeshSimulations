@@ -20,6 +20,7 @@
 package simulations;
 
 import Comparators.NodeComparator;
+import classes.GatewayNode;
 import classes.Message;
 import classes.Node;
 
@@ -47,7 +48,7 @@ public class GeneralMesh {
     private double distanceBetweenNodes;
     private double broadcastRadius;
     private double timeToNextGatewayMessage;
-    private Node gateway;
+    private GatewayNode gateway;
     private int numberOfMessagesToBeSent;
 
 
@@ -65,9 +66,10 @@ public class GeneralMesh {
                 throw new UnsupportedOperationException("configuration not implemented");
         }
         //gateway always connect to the first node in the node list
-        gateway = new Node(-1);
+        gateway = new GatewayNode(-1, numberOfMessagesToBeSent);
         gateway.addNodeToReachableNodes(nodes.get(0));
         nodes.get(0).addNodeToReachableNodes(gateway);
+        nodes.add(0,gateway);
 
     }
 
@@ -110,13 +112,10 @@ public class GeneralMesh {
      * nodes that have already sent the message do not resend the message
      */
     public void run() throws Exception {
-        Message messageAcrossNetwork = new Message("random message");
-        nodes.stream().findFirst().get().setMessage(messageAcrossNetwork);
-
 
         printState();
         while (incomplete()) {
-            TimeUnit.SECONDS.sleep(1);
+            //TimeUnit.SECONDS.sleep(1);
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
             nodePriorityQueue.addAll(nodes);
@@ -138,16 +137,20 @@ public class GeneralMesh {
             //print out new state
             printState();
         }
-        printSummary(messageAcrossNetwork);
+        printSummary();
+
 
     }
 
-    private void printSummary(Message messageAcrossNetwork) {//should eventually take a list of messages
-        System.out.printf("message payload: %s %n history: %n", messageAcrossNetwork.payload);
-        for (Node node : messageAcrossNetwork.history) {
-            System.out.printf("node id: %d, ", node.id);
+    private void printSummary() {//should eventually take a list of messages
+        for (Message message :
+            gateway.getMessages()) {
+            System.out.printf("message payload: %s %n history: %n", message.payload);
+            for (Node node : message.history) {
+                System.out.printf("node id: %d, ", node.id);
+            }
+            System.out.printf("%nComplete%n");
         }
-        System.out.printf("%nComplete%n");
     }
 
     private void printState() {
@@ -162,7 +165,7 @@ public class GeneralMesh {
     }
 
     private boolean incomplete() {
-        if(nodes.stream().anyMatch(n -> n.getMessage() != null))
+        if(nodes.stream().anyMatch(n -> n.getTimeToEvent() != Double.POSITIVE_INFINITY))
             return true;
         return false;
     }

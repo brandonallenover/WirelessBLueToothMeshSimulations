@@ -8,6 +8,7 @@ public class Message {
     public String payload;
     public List<Node> history;
 
+
     //constructor
     public Message(String payload) {
         history = new ArrayList<>();

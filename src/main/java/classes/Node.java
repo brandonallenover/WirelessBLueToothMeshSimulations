@@ -14,13 +14,17 @@ public class Node {
     //attributes
     public int id;
     private List<Node> nodesWithinRange;
-    private Message message;
+    protected Message message;
 
     public double timeToEvent;
 
     public List<Message> messageHistory;
 
     public List<Message> receiveFailureDueToAlreadyReceived;
+
+    public List<Message> receiveFailureDueToAlreadyHavingAMessage;
+
+    protected Random random = new Random();
 
 
 
@@ -30,6 +34,7 @@ public class Node {
         nodesWithinRange = new ArrayList<>();
         messageHistory = new ArrayList<>();
         receiveFailureDueToAlreadyReceived = new ArrayList<>();
+        receiveFailureDueToAlreadyHavingAMessage = new ArrayList<>();
         message = null;
         timeToEvent = Double.POSITIVE_INFINITY;
     }
@@ -70,21 +75,26 @@ public class Node {
             return;
         }
 
-        this.timeToEvent = new Random().nextDouble(); //timeToEvent possible range of 0 to 1
+        if (this.message != null){//currently logic does not allow a node to hold multiple messages (no message queue)
+            this.receiveFailureDueToAlreadyHavingAMessage.add(message);
+            return;
+        }
+
+        this.timeToEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
         this.message = message;
         message.appendHistory(this);
         this.appendMessageHistory(message);
     }
 
     public void handleEvent() throws Exception {
-        double result = this.timeToEvent;
-        this.timeToEvent = Double.POSITIVE_INFINITY;
+        if (this.timeToEvent <= 0 || this.timeToEvent == Double.POSITIVE_INFINITY)
+            throw new Exception("the timeToEvent value is invalid to handle event");
+
         //currently only send message to all in broadcast radius but may be extended upon other events
         this.sendMessageToAllNodesInRadius();
         this.message = null;
+        this.timeToEvent = Double.POSITIVE_INFINITY;
 
-        if (result <= 0 || result == Double.POSITIVE_INFINITY)
-            throw new Exception("the timeToEvent value is invalid to handle event");
     }
 
     public void IncrementTime(double timePassed) throws Exception {
@@ -95,7 +105,7 @@ public class Node {
             throw new Exception("time passed should not be greater than time to event, error in simulation logic");
         timeToEvent -= timePassed;
     }
-    private void sendMessageToAllNodesInRadius() {
+    protected void sendMessageToAllNodesInRadius() {
         for (Node node:
              nodesWithinRange) {
             node.setMessage(this.message);
