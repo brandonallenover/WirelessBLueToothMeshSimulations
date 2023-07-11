@@ -17,10 +17,7 @@
  *
  */
 
-import Comparators.NodeComparator;
 import simulations.GeneralMesh;
-import classes.Node;
-import java.util.PriorityQueue;
 
 public class Main {
     public static void main(String[] args) throws Exception {
