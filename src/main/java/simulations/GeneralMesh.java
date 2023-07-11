@@ -19,12 +19,15 @@
 
 package simulations;
 
+import Comparators.NodeComparator;
 import classes.Message;
 import classes.Node;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 
 public class GeneralMesh {
@@ -43,10 +46,14 @@ public class GeneralMesh {
     private Configuration configuration;
     private double distanceBetweenNodes;
     private double broadcastRadius;
+    private double timeToNextGatewayMessage;
     private Node gateway;
+    private int numberOfMessagesToBeSent;
+
 
     //constructor and specialised initializers for configurations
-    public GeneralMesh(int numberOfNodes, Configuration configuration, double broadcastRadius, double distanceBetweenNodes) throws Exception {
+    public GeneralMesh(int numberOfNodes, Configuration configuration, double broadcastRadius, double distanceBetweenNodes, int numberOfMessagesToBeSent) throws Exception {
+        this.numberOfMessagesToBeSent = numberOfMessagesToBeSent;
         this.configuration = configuration;
         this.distanceBetweenNodes = distanceBetweenNodes;
         this.broadcastRadius = broadcastRadius;
@@ -102,24 +109,40 @@ public class GeneralMesh {
      * initial design is that node sends to all other nodes in range.
      * nodes that have already sent the message do not resend the message
      */
-    public void run(){
+    public void run() throws Exception {
         Message messageAcrossNetwork = new Message("random message");
-        gateway.setMessage(messageAcrossNetwork);
+        nodes.stream().findFirst().get().setMessage(messageAcrossNetwork);
 
+
+        printState();
         while (incomplete()) {
-            List<Node> nodesWithMessageAtBeginningOfStep = nodesContainingMessages();
-            for (Node node : nodesWithMessageAtBeginningOfStep) {
-                for (Node reachableNode : node.getReachableNodes()) {
-                    reachableNode.setMessage(node.getMessage());
-                }
-                node.setMessage(null);
-            }
-            for (Node node : nodes) {
-                System.out.printf("node id: %d, message: %s%n", node.id, node.getMessage() == null ? "NO MESSAGE" : node.getMessage().payload);
+            TimeUnit.SECONDS.sleep(1);
+            //make a queue of all the events in order of their time to occur
+            PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
+            nodePriorityQueue.addAll(nodes);
 
+            //poll the queue for the next event to occur
+            Node nodeWithMostImmenentEvent = nodePriorityQueue.poll();
+
+            //what if no message is on the network
+            if (nodeWithMostImmenentEvent.timeToEvent == Double.POSITIVE_INFINITY)
+                throw new Exception("no events to do. sim should be over");
+
+            //change the system based on the event and increment the time for all current events
+            double lapsedTime = nodeWithMostImmenentEvent.getTimeToEvent();
+            while (!nodePriorityQueue.isEmpty()) {
+                nodePriorityQueue.poll().IncrementTime(lapsedTime);
             }
-            System.out.print("-------------------------------\n");
+            nodeWithMostImmenentEvent.handleEvent();
+
+            //print out new state
+            printState();
         }
+        printSummary(messageAcrossNetwork);
+
+    }
+
+    private void printSummary(Message messageAcrossNetwork) {//should eventually take a list of messages
         System.out.printf("message payload: %s %n history: %n", messageAcrossNetwork.payload);
         for (Node node : messageAcrossNetwork.history) {
             System.out.printf("node id: %d, ", node.id);
@@ -127,23 +150,24 @@ public class GeneralMesh {
         System.out.printf("%nComplete%n");
     }
 
+    private void printState() {
+        for (Node node : nodes) {
+            System.out.printf("node id: %d, message: %s%n", node.id, node.getMessage() == null ? "NO MESSAGE" : node.getMessage().payload);
+        }
+        System.out.print("-------------------------------\n");
+        for (Node node : nodes) {
+            System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToEvent());
+        }
+        System.out.print("\n-------------------------------\n");
+    }
+
     private boolean incomplete() {
-        if (gateway.getMessage() != null)
-            return true;
         if(nodes.stream().anyMatch(n -> n.getMessage() != null))
             return true;
         return false;
     }
 
-    private List<Node> nodesContainingMessages() {
-        List<Node> nodesWithMessageAtBeginningOfStep = new ArrayList<>();
-        if (gateway.getMessage() != null) {
-            nodesWithMessageAtBeginningOfStep.add(gateway);
-        }
-        nodesWithMessageAtBeginningOfStep.addAll(nodes);
-        nodesWithMessageAtBeginningOfStep.removeIf(n -> n.getMessage() == null);
-        return nodesWithMessageAtBeginningOfStep;
-    }
+
 
 
 }
