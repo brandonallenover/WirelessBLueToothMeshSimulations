@@ -51,6 +51,8 @@ public class GeneralMesh {
     private GatewayNode gateway;
     private int numberOfMessagesToBeSent;
 
+    private String actionString = "";
+
 
     //constructor and specialised initializers for configurations
     public GeneralMesh(int numberOfNodes, Configuration configuration, double broadcastRadius, double distanceBetweenNodes, int numberOfMessagesToBeSent) throws Exception {
@@ -121,41 +123,38 @@ public class GeneralMesh {
             nodePriorityQueue.addAll(nodes);
 
             //poll the queue for the next event to occur
-            Node nodeWithMostImmenentEvent = nodePriorityQueue.poll();
+            Node nodeWithMostImmanentEvent = nodePriorityQueue.poll();
 
             //what if no message is on the network
-            if (nodeWithMostImmenentEvent.timeToEvent == Double.POSITIVE_INFINITY)
+            if (nodeWithMostImmanentEvent.timeToNextEvent == Double.POSITIVE_INFINITY)
                 throw new Exception("no events to do. sim should be over");
 
             //change the system based on the event and increment the time for all current events
-            double lapsedTime = nodeWithMostImmenentEvent.getTimeToEvent();
+            double lapsedTime = nodeWithMostImmanentEvent.getTimeToEvent();
             while (!nodePriorityQueue.isEmpty()) {
                 nodePriorityQueue.poll().IncrementTime(lapsedTime);
             }
-            nodeWithMostImmenentEvent.handleEvent();
+            nodeWithMostImmanentEvent.handleEvent();
+
+            //log the action occurring in this step and how long it took to occur
+            actionString += String.valueOf(nodeWithMostImmanentEvent.id) + " ";
+            if (nodeWithMostImmanentEvent.mode == Node.Mode.WAITING)
+                actionString += "sent message";
+            else
+                actionString += "staged message";
+            actionString += ", this took " + String.valueOf(lapsedTime) + " seconds \n";
 
             //print out new state
             printState();
         }
-        printSummary();
+        System.out.println(actionString);
 
 
-    }
-
-    private void printSummary() {//should eventually take a list of messages
-        for (Message message :
-            gateway.getMessages()) {
-            System.out.printf("message payload: %s %n history: %n", message.payload);
-            for (Node node : message.history) {
-                System.out.printf("node id: %d, ", node.id);
-            }
-            System.out.printf("%nComplete%n");
-        }
     }
 
     private void printState() {
         for (Node node : nodes) {
-            System.out.printf("node id: %d, message: %s%n", node.id, node.getMessage() == null ? "NO MESSAGE" : node.getMessage().payload);
+            System.out.printf("node id: %d, message: %s%n", node.id, node.getMessageToBeSent() == null ? "NO MESSAGE" : node.getMessageToBeSent().payload);
         }
         System.out.print("-------------------------------\n");
         for (Node node : nodes) {

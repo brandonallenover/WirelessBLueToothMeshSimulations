@@ -6,23 +6,28 @@
 
 package classes;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import simulations.GeneralMesh;
+
+import java.util.*;
 
 public class Node {
     //attributes
+    public enum Mode {
+        WAITING,
+        SENDING
+    }
     public int id;
-    private List<Node> nodesWithinRange;
-    protected Message message;
+    protected Message messageToBeSent = null;
+    public Mode mode = Mode.WAITING;
+    public double timeToNextEvent = Double.POSITIVE_INFINITY;
 
-    public double timeToEvent;
 
-    public List<Message> messageHistory;
+    private List<Node> nodesWithinRange  = new ArrayList<>();;
+    protected Queue<Message> receivedMessages = new LinkedList<>();
+    public List<Message> messageHistory = new LinkedList<>();
+    public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
+    public List<Message> receiveFailureDueToBusySending = new LinkedList<>();
 
-    public List<Message> receiveFailureDueToAlreadyReceived;
-
-    public List<Message> receiveFailureDueToAlreadyHavingAMessage;
 
     protected Random random = new Random();
 
@@ -31,12 +36,6 @@ public class Node {
     //constructors
     public Node(int id) {
         this.id = id;
-        nodesWithinRange = new ArrayList<>();
-        messageHistory = new ArrayList<>();
-        receiveFailureDueToAlreadyReceived = new ArrayList<>();
-        receiveFailureDueToAlreadyHavingAMessage = new ArrayList<>();
-        message = null;
-        timeToEvent = Double.POSITIVE_INFINITY;
     }
 
     //general methods
@@ -49,67 +48,92 @@ public class Node {
     public boolean hasAlreadyReceivedMessage(Message message) {
         return messageHistory.contains(message);
     }
-
-    public Message getMessage() {
-        return message;
+    public Message getMessageToBeSent() {
+        return messageToBeSent;
     }
-
     public List<Node> getReachableNodes() {
         return nodesWithinRange;
     }
-
     public double getTimeToEvent() {
-        return timeToEvent;
+        return timeToNextEvent;
     }
 
-    public void setMessage(Message message) {
-        //some business logic to receiving message, may expand to increase multiple messages
-        if (message == null) {
-            this.message = null;
+    //simulation methods
+    public void receiveMessage(Message message) throws Exception {
+        switch (this.mode) {
+            case SENDING:
+                receiveFailureDueToBusySending.add(message);
+                break;
+            case WAITING:
+                //already received messages are ignored
+                if (this.hasAlreadyReceivedMessage(message)) {
+                    this.receiveFailureDueToAlreadyReceived.add(message);
+                    return;
+                }
+                //message is received and therefore is added to history
+                receivedMessages.add(message);
+                message.appendHistory(this);
+                this.appendMessageHistory(message);
+                //if message is not already staged by the node the stage the just received one
+                if(messageToBeSent == null) {
+                    stageMessageForSending();
+                    return;
+                }
+                break;
+        }
+    }
+
+    public void stageMessageForSending() throws Exception {
+        //if the node already has a message staged for sending it cannot stage another
+        if (this.messageToBeSent != null) {
+            throw new Exception("cannot stage another message while a staged message has not yet sent");
+        }
+        if (receivedMessages.isEmpty()) {
+            this.messageToBeSent = null;
+            this.timeToNextEvent = Double.POSITIVE_INFINITY;
+            this.mode = Mode.WAITING;
             return;
         }
+        this.messageToBeSent = receivedMessages.poll();
+        this.timeToNextEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
+        this.mode = Mode.WAITING;
+    }
 
-        if (this.hasAlreadyReceivedMessage(message))
-        {
-            this.receiveFailureDueToAlreadyReceived.add(message);
-            return;
-        }
-
-        if (this.message != null){//currently logic does not allow a node to hold multiple messages (no message queue)
-            this.receiveFailureDueToAlreadyHavingAMessage.add(message);
-            return;
-        }
-
-        this.timeToEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
-        this.message = message;
-        message.appendHistory(this);
-        this.appendMessageHistory(message);
+    public void commenceSending() {
+        this.mode = Mode.SENDING;
+        this.timeToNextEvent = random.nextDouble();
     }
 
     public void handleEvent() throws Exception {
-        if (this.timeToEvent <= 0 || this.timeToEvent == Double.POSITIVE_INFINITY)
-            throw new Exception("the timeToEvent value is invalid to handle event");
-
-        //currently only send message to all in broadcast radius but may be extended upon other events
-        this.sendMessageToAllNodesInRadius();
-        this.message = null;
-        this.timeToEvent = Double.POSITIVE_INFINITY;
-
+        if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
+            throw new Exception("no event for this node to handle");
+        switch (mode) {
+            case SENDING:
+                sendMessageToAllNodesInRadius();
+                stageMessageForSending();
+                break;
+            case WAITING:
+                commenceSending();
+                break;
+        }
     }
 
     public void IncrementTime(double timePassed) throws Exception {
         //pass time as this node did not do an event
-        if (this.timeToEvent == Double.POSITIVE_INFINITY)//no event immanent for this node
+        if (this.timeToNextEvent == Double.POSITIVE_INFINITY)//no event immanent for this node
             return;
-        if (timePassed > this.timeToEvent)
+        if (timePassed > this.timeToNextEvent)
             throw new Exception("time passed should not be greater than time to event, error in simulation logic");
-        timeToEvent -= timePassed;
+        timeToNextEvent -= timePassed;
     }
-    protected void sendMessageToAllNodesInRadius() {
+    protected void sendMessageToAllNodesInRadius() throws Exception {
         for (Node node:
              nodesWithinRange) {
-            node.setMessage(this.message);
+            node.receiveMessage(this.messageToBeSent);
         }
+        this.messageToBeSent = null;
     }
+
+    //print summary of node message history
 
 }

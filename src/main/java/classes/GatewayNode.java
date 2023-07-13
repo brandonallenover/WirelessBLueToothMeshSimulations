@@ -7,30 +7,47 @@ public class GatewayNode extends Node{
     private List<Message> messages;
 
 
-    public GatewayNode(int id, int numberOfMessages) {
+    public GatewayNode(int id, int numberOfMessages) throws Exception {
         super(id);
         messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             messages.add(new Message(String.valueOf(i)));
         }
-        timeToEvent = random.nextDouble();
+        timeToNextEvent = random.nextDouble();
+        stageMessageForSending();
     }
 
     @Override
     public void handleEvent() throws Exception {
-        if (this.timeToEvent <= 0 || this.timeToEvent == Double.POSITIVE_INFINITY)
-            throw new Exception("the timeToEvent value is invalid to handle event");
-        //currently only send message to all in broadcast radius but may be extended upon other events
-        this.message = messages.remove(0);
-        this.messageHistory.add(this.message);
-        this.sendMessageToAllNodesInRadius();
-        this.message = null;
+        if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
+            throw new Exception("no event for this node to handle");
+        //
+        switch (this.mode) {
+            case SENDING:
+                sendMessageToAllNodesInRadius();
+                stageMessageForSending();
+                break;
+            case WAITING:
+                commenceSending();
+                break;
+        }
 
-        if (messages.isEmpty()){
-            this.timeToEvent = Double.POSITIVE_INFINITY;
+    }
+    @Override
+    public void stageMessageForSending() throws Exception {
+        //if the node already has a message staged for sending it cannot stage another
+        if (this.messageToBeSent != null) {
+            throw new Exception("cannot stage another message while a staged message has not yet sent");
+        }
+        if (messages.isEmpty()) {
+            this.messageToBeSent = null;
+            this.timeToNextEvent = Double.POSITIVE_INFINITY;
+            this.mode = Mode.WAITING;
             return;
         }
-        this.timeToEvent = random.nextDouble() + 0.5;//plus 0.5 to minimise congestion
+        this.messageToBeSent = messages.remove(0);
+        this.timeToNextEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
+        this.mode = Mode.WAITING;
 
     }
 
