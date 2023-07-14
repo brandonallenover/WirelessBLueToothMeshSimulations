@@ -22,7 +22,7 @@ public class Node {
     public double timeToNextEvent = Double.POSITIVE_INFINITY;
 
 
-    private List<Node> nodesWithinRange  = new ArrayList<>();;
+    private List<Connection> connections  = new ArrayList<>();;
     protected Queue<Message> receivedMessages = new LinkedList<>();
     public List<Message> messageHistory = new LinkedList<>();
     public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
@@ -39,8 +39,8 @@ public class Node {
     }
 
     //general methods
-    public void addNodeToReachableNodes(Node node) {
-        nodesWithinRange.add(node);
+    public void addNodeToConnections(Connection connection) {
+        connections.add(connection);
     }
     public void appendMessageHistory(Message message) {
         messageHistory.add(message);
@@ -51,8 +51,8 @@ public class Node {
     public Message getMessageToBeSent() {
         return messageToBeSent;
     }
-    public List<Node> getReachableNodes() {
-        return nodesWithinRange;
+    public List<Connection> getConnections() {
+        return connections;
     }
     public double getTimeToEvent() {
         return timeToNextEvent;
@@ -127,9 +127,9 @@ public class Node {
         timeToNextEvent -= timePassed;
     }
     protected void sendMessageToAllNodesInRadius() throws Exception {
-        for (Node node:
-             nodesWithinRange) {
-            node.receiveMessage(this.messageToBeSent);
+        for (Connection connection:
+             connections) {
+            connection.getNodeConnectedTo(this).receiveMessage(this.messageToBeSent);
         }
         this.messageToBeSent = null;
     }

@@ -20,6 +20,7 @@
 package simulations;
 
 import Comparators.NodeComparator;
+import classes.Connection;
 import classes.GatewayNode;
 import classes.Message;
 import classes.Node;
@@ -69,9 +70,14 @@ public class GeneralMesh {
         }
         //gateway always connect to the first node in the node list
         gateway = new GatewayNode(-1, numberOfMessagesToBeSent);
-        gateway.addNodeToReachableNodes(nodes.get(0));
-        nodes.get(0).addNodeToReachableNodes(gateway);
+        Node firstNode = nodes.stream()
+                .findFirst()
+                .get();
+        Connection gatewayConnection = new Connection(gateway, firstNode, 1);
+        gateway.addNodeToConnections(gatewayConnection);
+        firstNode.addNodeToConnections(gatewayConnection);
         nodes.add(0,gateway);
+
 
     }
 
@@ -95,14 +101,11 @@ public class GeneralMesh {
         for (int i = 0; i < nodes.size(); i++) {
             node = nodes.get(i);
             //nodes reachable and lower on the list
-            for (int j = i - numberOfNodesReachablePerSide; j < i; j++) {
-                if (j < 0) continue;
-                node.addNodeToReachableNodes(nodes.get(j));
-            }
-            //nodes reachable and lower on the list
             for (int j = i + numberOfNodesReachablePerSide; j > i; j--) {
                 if (j > nodes.size() - 1) continue;
-                node.addNodeToReachableNodes(nodes.get(j));
+                Connection connection = new Connection(node, nodes.get(j), 1);
+                node.addNodeToConnections(connection);
+                nodes.get(j).addNodeToConnections(connection);
             }
         }
     }
