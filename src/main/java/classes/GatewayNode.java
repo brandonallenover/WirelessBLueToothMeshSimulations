@@ -11,7 +11,7 @@ public class GatewayNode extends Node{
         super(id);
         messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
-            messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes)));
+            messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes), 100));
         }
         timeToNextEvent = random.nextDouble();
         stageMessageForSending();
