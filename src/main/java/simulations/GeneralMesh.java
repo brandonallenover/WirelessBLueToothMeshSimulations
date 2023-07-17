@@ -100,10 +100,11 @@ public class GeneralMesh {
         int numberOfNodesReachablePerSide = (int)Math.floor(broadcastRadius / distanceBetweenNodes);
         for (int i = 0; i < nodes.size(); i++) {
             node = nodes.get(i);
-            //nodes reachable and lower on the list
+            //nodes reachable and further on the list
             for (int j = i + numberOfNodesReachablePerSide; j > i; j--) {
                 if (j > nodes.size() - 1) continue;
-                Connection connection = new Connection(node, nodes.get(j), 1);
+                double strength = 1 / ((j - i) * distanceBetweenNodes);//strength = 1 / the distance between the two nodes
+                Connection connection = new Connection(node, nodes.get(j), strength);
                 node.addNodeToConnections(connection);
                 nodes.get(j).addNodeToConnections(connection);
             }
