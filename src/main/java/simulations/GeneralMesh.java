@@ -69,7 +69,7 @@ public class GeneralMesh {
                 throw new UnsupportedOperationException("configuration not implemented");
         }
         //gateway always connect to the first node in the node list
-        gateway = new GatewayNode(-1, numberOfMessagesToBeSent);
+        gateway = new GatewayNode(-1, numberOfMessagesToBeSent, numberOfNodes);
         Node firstNode = nodes.stream()
                 .findFirst()
                 .get();

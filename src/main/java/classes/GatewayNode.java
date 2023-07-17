@@ -7,11 +7,11 @@ public class GatewayNode extends Node{
     private List<Message> messages;
 
 
-    public GatewayNode(int id, int numberOfMessages) throws Exception {
+    public GatewayNode(int id, int numberOfMessages, int numberOfNodes) throws Exception {
         super(id);
         messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
-            messages.add(new Message(String.valueOf(i)));
+            messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes)));
         }
         timeToNextEvent = random.nextDouble();
         stageMessageForSending();
