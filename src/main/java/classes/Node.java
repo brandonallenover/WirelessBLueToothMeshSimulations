@@ -27,6 +27,8 @@ public class Node {
     public String messageHistory = "";//currently unlimited length of history
     public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
     public List<Message> receiveFailureDueToBusySending = new LinkedList<>();
+    public List<Message> receiveFailureDueToCorrupted = new LinkedList<>();
+
 
 
     protected Random random = new Random();
@@ -65,9 +67,14 @@ public class Node {
                 receiveFailureDueToBusySending.add(message);
                 break;
             case WAITING:
-                //already received messages are ignored
+                //already received messages are ignored and logged
                 if (this.hasAlreadyReceivedMessage(message)) {
                     this.receiveFailureDueToAlreadyReceived.add(message);
+                    return;
+                }
+                //corrupted messages are ignored and logged
+                if (message.isCorrupted) {
+                    this.receiveFailureDueToCorrupted.add(message);
                     return;
                 }
                 //message is received and therefore is added to history

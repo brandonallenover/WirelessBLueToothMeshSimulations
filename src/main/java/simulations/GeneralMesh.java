@@ -19,17 +19,16 @@
 
 package simulations;
 
+import Comparators.ConnectionComparator;
 import Comparators.NodeComparator;
 import classes.Connection;
 import classes.GatewayNode;
 import classes.Message;
 import classes.Node;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 public class GeneralMesh {
@@ -137,6 +136,7 @@ public class GeneralMesh {
                 nodePriorityQueue.poll().IncrementTime(lapsedTime);
             }
             nodeWithMostImmanentEvent.handleEvent();
+            checkAndActionCorruptedMessages();
 
             //log the action occurring in this step and how long it took to occur
             actionString += String.valueOf(nodeWithMostImmanentEvent.id) + " ";
@@ -152,6 +152,38 @@ public class GeneralMesh {
         System.out.println(actionString);
 
 
+    }
+
+    private void checkAndActionCorruptedMessages() {
+        List<Connection> corruptableConnections = new ArrayList<>();
+        for (Node node:
+                nodes) {
+            corruptableConnections.addAll(node.getConnections());
+        }
+        //filter all connection without messages (message not being transmitted)
+        corruptableConnections = corruptableConnections.stream()
+                .filter(element -> element.broadcastedMessage != null)
+                .collect(Collectors.toList());
+        //group by receiving node
+        for (Node node :
+                nodes) {
+            List<Connection> connectionsFacingCorruption = corruptableConnections.stream()
+                    .filter(element -> element.to == node)
+                    .sorted(new ConnectionComparator())
+                    .collect(Collectors.toList());
+            if (connectionsFacingCorruption.size() <= 1) {
+                continue;
+            }
+            Connection greatest = connectionsFacingCorruption.get(0);
+            Connection secondGreatest = connectionsFacingCorruption.get(1);
+            if (greatest.strength > 2 * secondGreatest.strength) {
+                connectionsFacingCorruption.remove(greatest);
+            }
+            for (Connection connection :
+                    connectionsFacingCorruption) {
+                connection.broadcastedMessage.isCorrupted = true;
+            }
+        }
     }
 
     private void printState() {

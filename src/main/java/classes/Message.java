@@ -11,6 +11,7 @@ public class Message implements Cloneable{
     public int destinationId;
     public int timeToLive;
     public String history = "";
+    public boolean isCorrupted = false;
 
 
     //constructor
