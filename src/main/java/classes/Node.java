@@ -129,10 +129,16 @@ public class Node {
     protected void sendMessageToAllNodesInRadius() throws Exception {
         for (Connection connection:
              connections) {
-            connection.getNodeConnectedTo(this).receiveMessage(this.messageToBeSent);
+            //clone message for the broadcast
+            Message broadcastedMessage = this.messageToBeSent.clone();
+            //make any edits to the message
+
+            //send the message
+            connection.getNodeConnectedTo(this).receiveMessage(broadcastedMessage);
         }
         this.messageToBeSent = null;
     }
+
 
     //print summary of node message history
 
