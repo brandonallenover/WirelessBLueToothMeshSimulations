@@ -24,7 +24,7 @@ public class Node {
 
     private List<Connection> connections  = new ArrayList<>();;
     protected Queue<Message> receivedMessages = new LinkedList<>();
-    public List<Message> messageHistory = new LinkedList<>();
+    public String messageHistory = "";//currently unlimited length of history
     public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
     public List<Message> receiveFailureDueToBusySending = new LinkedList<>();
 
@@ -43,10 +43,10 @@ public class Node {
         connections.add(connection);
     }
     public void appendMessageHistory(Message message) {
-        messageHistory.add(message);
+        messageHistory += message.getMessageIdentifier();
     }
     public boolean hasAlreadyReceivedMessage(Message message) {
-        return messageHistory.contains(message);
+        return messageHistory.contains(message.getMessageIdentifier());
     }
     public Message getMessageToBeSent() {
         return messageToBeSent;

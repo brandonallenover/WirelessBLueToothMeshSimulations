@@ -29,4 +29,7 @@ public class Message {
     public boolean hasBeenToNode(Node node) {
         return history.contains(node);
     }
+    public String getMessageIdentifier() {
+        return this.srcId + "," + this.sequenceId + "," + this.destinationId + ";";
+    }
 }
