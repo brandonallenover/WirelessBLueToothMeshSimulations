@@ -73,9 +73,8 @@ public class GeneralMesh {
         Node firstNode = nodes.stream()
                 .findFirst()
                 .get();
-        Connection gatewayConnection = new Connection(gateway, firstNode, 1);
-        gateway.addNodeToConnections(gatewayConnection);
-        firstNode.addNodeToConnections(gatewayConnection);
+        gateway.addNodeToConnections(new Connection(firstNode, 1));
+        firstNode.addNodeToConnections(new Connection(gateway, 1));
         nodes.add(0,gateway);
 
 
@@ -104,9 +103,8 @@ public class GeneralMesh {
             for (int j = i + numberOfNodesReachablePerSide; j > i; j--) {
                 if (j > nodes.size() - 1) continue;
                 double strength = 1 / ((j - i) * distanceBetweenNodes);//strength = 1 / the distance between the two nodes
-                Connection connection = new Connection(node, nodes.get(j), strength);
-                node.addNodeToConnections(connection);
-                nodes.get(j).addNodeToConnections(connection);
+                node.addNodeToConnections(new Connection(nodes.get(j), strength));
+                nodes.get(j).addNodeToConnections(new Connection(node, strength));
             }
         }
     }

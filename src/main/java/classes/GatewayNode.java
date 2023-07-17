@@ -22,6 +22,7 @@ public class GatewayNode extends Node{
         if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
             throw new Exception("no event for this node to handle");
         //
+        Message message = this.getConnections().get(0).broadcastedMessage;
         switch (this.mode) {
             case SENDING:
                 sendMessageToAllNodesInRadius();

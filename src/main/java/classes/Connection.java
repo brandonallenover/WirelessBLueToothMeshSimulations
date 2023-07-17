@@ -10,18 +10,18 @@ import java.util.List;
  */
 
 public class Connection {
-    public List<Node> connectedNodes = new ArrayList<>();
+    public Node to;
     public double strength = 0;
+    public Message broadcastedMessage = null;
 
     //constructor
-    public Connection (Node node1, Node node2, double strength) {
-        connectedNodes.add(node1);
-        connectedNodes.add(node2);
+    public Connection (Node to, double strength) {
+        this.to = to;
         this.strength = strength;
     }
 
     //methods
-    public Node getNodeConnectedTo(Node node) {
-        return connectedNodes.stream().filter(element -> element != node).findFirst().get();
+    public Node getReceivingNode() {
+        return to;
     }
 }
