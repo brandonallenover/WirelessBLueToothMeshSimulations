@@ -116,9 +116,8 @@ public class GeneralMesh {
      */
     public void run() throws Exception {
 
-        printState();
+        //printState();
         while (incomplete()) {
-            //TimeUnit.SECONDS.sleep(1);
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
             nodePriorityQueue.addAll(nodes);
@@ -147,7 +146,7 @@ public class GeneralMesh {
             actionString += ", this took " + String.valueOf(lapsedTime) + " seconds \n";
 
             //print out new state
-            printState();
+            //printState();
         }
         System.out.println(actionString);
 

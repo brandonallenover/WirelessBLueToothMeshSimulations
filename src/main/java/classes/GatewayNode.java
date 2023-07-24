@@ -19,20 +19,21 @@ public class GatewayNode extends Node{
 
     @Override
     public void handleEvent() throws Exception {
+        //System.out.println("before event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
         if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
             throw new Exception("no event for this node to handle");
-        //
-        Message message = this.getConnections().get(0).broadcastedMessage;
         switch (this.mode) {
             case SENDING:
                 sendMessageToAllNodesInRadius();
-                stageMessageForSending();
+                if (this.sendingAttempt == 1)
+                    stageMessageForSending();
                 break;
             case WAITING:
                 commenceSending();
                 break;
         }
-
+        //System.out.println("after event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
+        //System.out.println("--------------------------------");
     }
     @Override
     public void stageMessageForSending() throws Exception {

@@ -16,6 +16,8 @@ public class Node {
         WAITING,
         SENDING
     }
+    public int sendingAttempt = 1;
+    public final int maximumSendingAttempts = 3;
     public int id;
     protected Message messageToBeSent = null;
     public Mode mode = Mode.WAITING;
@@ -58,6 +60,9 @@ public class Node {
     }
     public double getTimeToEvent() {
         return timeToNextEvent;
+    }
+    protected double getrandomTime(double maximumValue) {
+        return random.nextDouble() * maximumValue;
     }
 
     //simulation methods
@@ -102,7 +107,8 @@ public class Node {
             return;
         }
         this.messageToBeSent = receivedMessages.poll();
-        this.timeToNextEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
+        this.timeToNextEvent = 20 + getrandomTime(3); //20 ms + random amount
+        this.sendingAttempt = 1;
         this.mode = Mode.WAITING;
     }
 
@@ -116,21 +122,25 @@ public class Node {
             //put message in the connection
             connection.broadcastedMessage = broadcastedMessage;
         }
-        this.timeToNextEvent = random.nextDouble();
+        this.timeToNextEvent = getrandomTime(3);
     }
 
     public void handleEvent() throws Exception {
+        //System.out.println("before event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
         if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
             throw new Exception("no event for this node to handle");
         switch (mode) {
             case SENDING:
                 sendMessageToAllNodesInRadius();
-                stageMessageForSending();
+                if (this.sendingAttempt == 1)
+                    stageMessageForSending();
                 break;
             case WAITING:
                 commenceSending();
                 break;
         }
+        //System.out.println("after event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
+        //System.out.println("--------------------------------");
     }
 
     public void IncrementTime(double timePassed) throws Exception {
@@ -148,7 +158,21 @@ public class Node {
             connection.getReceivingNode().receiveMessage(connection.broadcastedMessage);
             connection.broadcastedMessage = null;
         }
+        //handle incrementing the attempt
+        incrementSendingAttempt();
+        if (this.sendingAttempt != 1) {
+            this.timeToNextEvent = 20 + getrandomTime(3);
+            this.mode = Mode.WAITING;
+            return;
+        }
         this.messageToBeSent = null;
+    }
+
+    private void incrementSendingAttempt() {
+        sendingAttempt++;
+        if (sendingAttempt > maximumSendingAttempts) {
+            sendingAttempt = 1;
+        }
     }
 
 
