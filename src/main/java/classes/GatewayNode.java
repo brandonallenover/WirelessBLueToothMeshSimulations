@@ -17,24 +17,7 @@ public class GatewayNode extends Node{
         stageMessageForSending();
     }
 
-    @Override
-    public void handleEvent() throws Exception {
-        //System.out.println("before event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
-        if (this.timeToNextEvent == Double.POSITIVE_INFINITY)
-            throw new Exception("no event for this node to handle");
-        switch (this.mode) {
-            case SENDING:
-                sendMessageToAllNodesInRadius();
-                if (this.sendingAttempt == 1)
-                    stageMessageForSending();
-                break;
-            case WAITING:
-                commenceSending();
-                break;
-        }
-        //System.out.println("after event: " + this.id + " " + this.mode + " " + this.sendingAttempt);
-        //System.out.println("--------------------------------");
-    }
+
     @Override
     public void stageMessageForSending() throws Exception {
         //if the node already has a message staged for sending it cannot stage another

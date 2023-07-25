@@ -125,12 +125,8 @@ public class GeneralMesh {
             //poll the queue for the next event to occur
             Node nodeWithMostImmanentEvent = nodePriorityQueue.poll();
 
-            //what if no message is on the network
-            if (nodeWithMostImmanentEvent.timeToNextEvent == Double.POSITIVE_INFINITY)
-                throw new Exception("no events to do. sim should be over");
-
             //change the system based on the event and increment the time for all current events
-            double lapsedTime = nodeWithMostImmanentEvent.getTimeToEvent();
+            double lapsedTime = nodeWithMostImmanentEvent.getTimeToNextEvent();
             while (!nodePriorityQueue.isEmpty()) {
                 nodePriorityQueue.poll().IncrementTime(lapsedTime);
             }
@@ -148,7 +144,7 @@ public class GeneralMesh {
             //print out new state
             //printState();
         }
-        System.out.println(actionString);
+        //System.out.println(actionString);
 
 
     }
@@ -191,13 +187,13 @@ public class GeneralMesh {
         }
         System.out.print("-------------------------------\n");
         for (Node node : nodes) {
-            System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToEvent());
+            System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToNextEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToNextEvent());
         }
         System.out.print("\n-------------------------------\n");
     }
 
     private boolean incomplete() {
-        if(nodes.stream().anyMatch(n -> n.getTimeToEvent() != Double.POSITIVE_INFINITY))
+        if(nodes.stream().anyMatch(n -> n.getTimeToNextTransmissionEvent() != Double.POSITIVE_INFINITY))
             return true;
         return false;
     }
