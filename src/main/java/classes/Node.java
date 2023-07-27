@@ -32,13 +32,14 @@ public class Node {
     public double remainingTimeListeningOnCurrentChannel = getrandomTime(20);
 
 
-    private List<Connection> connections  = new ArrayList<>();
+    private List<List<Connection>> connections  = new ArrayList<>();
 
     protected Queue<Message> receivedMessages = new LinkedList<>();
     public String messageHistory = "";//currently unlimited length of history
     public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
     public List<Message> receiveFailureDueToBusySending = new LinkedList<>();
     public List<Message> receiveFailureDueToCorrupted = new LinkedList<>();
+    public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new LinkedList<>();
 
 
 
@@ -50,7 +51,7 @@ public class Node {
     }
 
     //general methods
-    public void addNodeToConnections(Connection connection) {
+    public void addNodeToConnections(List<Connection> connection) {
         connections.add(connection);
     }
     public void appendMessageHistory(Message message) {
@@ -62,8 +63,13 @@ public class Node {
     public Message getMessageToBeSent() {
         return messageToBeSent;
     }
-    public List<Connection> getConnections() {
-        return connections;
+    public List<Connection> getConnectionsOnChannel(int channel) {
+        List<Connection> result = new ArrayList<>();
+        for (List<Connection> connection:
+             connections) {
+            result.add(connection.get(channel - 1));
+        }
+        return result;
     }
     public double getTimeToNextEvent() {
         return Math.min(timeToNextEvent, remainingTimeListeningOnCurrentChannel);
@@ -76,7 +82,11 @@ public class Node {
     }
 
     //simulation methods
-    public void receiveMessage(Message message) throws Exception {//////////////////////conditionality of what channel is being listened on
+    public void receiveMessage(Message message, int channelSentOn) throws Exception {//////////////////////conditionality of what channel is being listened on
+        if (channelSentOn != channelListeningOn) {
+            receiveFailureDueToNotListeningOnCorrectChannel.add(message);
+            return;
+        }
         switch (this.mode) {
             case SENDING:
                 receiveFailureDueToBusySending.add(message);
@@ -125,13 +135,13 @@ public class Node {
 
     public void commenceSending() {
         this.mode = Mode.SENDING;
-        for (Connection connection:
+        for (List<Connection> connection:
                 connections) {
             //clone message for the broadcast
             Message broadcastedMessage = this.messageToBeSent.clone();
             //edit the message however is required - ttl
             //put message in the connection
-            connection.broadcastedMessage = broadcastedMessage;
+            connection.get(this.channelSendingOn - 1).broadcastedMessage = broadcastedMessage;
         }
         this.timeToNextEvent = getrandomTime(3);//time taken to transmit the message
     }
@@ -176,11 +186,11 @@ public class Node {
         timeToNextEvent -= timePassed;
     }
     protected void sendMessageToAllNodesInRadius() throws Exception {
-        for (Connection connection:
+        for (List<Connection> connection:
              connections) {
             //send the message
-            connection.getReceivingNode().receiveMessage(connection.broadcastedMessage);
-            connection.broadcastedMessage = null;
+            connection.get(this.channelSendingOn - 1).getReceivingNode().receiveMessage(connection.get(this.channelSendingOn - 1).broadcastedMessage, this.channelSendingOn);
+            connection.get(this.channelSendingOn - 1).broadcastedMessage = null;
         }
         //handle incrementing the channel
         incrementChannelSendingOn();

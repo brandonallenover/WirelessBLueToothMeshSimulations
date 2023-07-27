@@ -72,11 +72,21 @@ public class GeneralMesh {
         Node firstNode = nodes.stream()
                 .findFirst()
                 .get();
-        gateway.addNodeToConnections(new Connection(firstNode, 1));
-        firstNode.addNodeToConnections(new Connection(gateway, 1));
+        connectNodes(firstNode, gateway, 1);
         nodes.add(0,gateway);
 
 
+    }
+
+    private void connectNodes(Node node1, Node node2, double strength) {
+        List<Connection> toNode2 = new ArrayList<>();
+        List<Connection> toNode1 = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            toNode2.add(new Connection(node2, strength, i + 1));
+            toNode1.add(new Connection(node1, strength, i + 1));
+        }
+        node1.addNodeToConnections(toNode2);
+        node2.addNodeToConnections(toNode1);
     }
 
 
@@ -102,8 +112,7 @@ public class GeneralMesh {
             for (int j = i + numberOfNodesReachablePerSide; j > i; j--) {
                 if (j > nodes.size() - 1) continue;
                 double strength = 1 / ((j - i) * distanceBetweenNodes);//strength = 1 / the distance between the two nodes
-                node.addNodeToConnections(new Connection(nodes.get(j), strength));
-                nodes.get(j).addNodeToConnections(new Connection(node, strength));
+                connectNodes(nodes.get(j), node, strength);
             }
         }
     }
@@ -150,33 +159,36 @@ public class GeneralMesh {
     }
 
     private void checkAndActionCorruptedMessages() {
-        List<Connection> corruptableConnections = new ArrayList<>();
-        for (Node node:
-                nodes) {
-            corruptableConnections.addAll(node.getConnections());
-        }
-        //filter all connection without messages (message not being transmitted)
-        corruptableConnections = corruptableConnections.stream()
-                .filter(element -> element.broadcastedMessage != null)
-                .collect(Collectors.toList());
-        //group by receiving node
-        for (Node node :
-                nodes) {
-            List<Connection> connectionsFacingCorruption = corruptableConnections.stream()
-                    .filter(element -> element.to == node)
-                    .sorted(new ConnectionComparator())
+        //for each channel
+        for (int i = 0; i < 3; i++) {
+            List<Connection> corruptableConnections = new ArrayList<>();
+            for (Node node:
+                    nodes) {
+                corruptableConnections.addAll(node.getConnectionsOnChannel(i + 1));
+            }
+            //filter all connection without messages (message not being transmitted)
+            corruptableConnections = corruptableConnections.stream()
+                    .filter(element -> element.broadcastedMessage != null)
                     .collect(Collectors.toList());
-            if (connectionsFacingCorruption.size() <= 1) {
-                continue;
-            }
-            Connection greatest = connectionsFacingCorruption.get(0);
-            Connection secondGreatest = connectionsFacingCorruption.get(1);
-            if (greatest.strength > 2 * secondGreatest.strength) {
-                connectionsFacingCorruption.remove(greatest);
-            }
-            for (Connection connection :
-                    connectionsFacingCorruption) {
-                connection.broadcastedMessage.isCorrupted = true;
+            //group by receiving node
+            for (Node node :
+                    nodes) {
+                List<Connection> connectionsFacingCorruption = corruptableConnections.stream()
+                        .filter(element -> element.to == node)
+                        .sorted(new ConnectionComparator())
+                        .collect(Collectors.toList());
+                if (connectionsFacingCorruption.size() <= 1) {
+                    continue;
+                }
+                Connection greatest = connectionsFacingCorruption.get(0);
+                Connection secondGreatest = connectionsFacingCorruption.get(1);
+                if (greatest.strength > 2 * secondGreatest.strength) {
+                    connectionsFacingCorruption.remove(greatest);
+                }
+                for (Connection connection :
+                        connectionsFacingCorruption) {
+                    connection.broadcastedMessage.isCorrupted = true;
+                }
             }
         }
     }
