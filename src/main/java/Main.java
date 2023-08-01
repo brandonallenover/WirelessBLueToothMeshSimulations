@@ -23,11 +23,10 @@ import simulations.GeneralMesh;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        GeneralMesh generalMesh = new GeneralMesh(1, GeneralMesh.Configuration.SINGLEROW, 5, 1, 5);
+        GeneralMesh generalMesh = new GeneralMesh(15, GeneralMesh.Configuration.SINGLEROW, 5, 2, 10);
         generalMesh.run();
 
-
-
+        //[unicast retransmissions interval step + unicast retransmissions interval increment * (TTL - 1)]
 
 
     }

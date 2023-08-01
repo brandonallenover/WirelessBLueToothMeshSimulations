@@ -47,11 +47,10 @@ public class GeneralMesh {
     private Configuration configuration;
     private double distanceBetweenNodes;
     private double broadcastRadius;
-    private double timeToNextGatewayMessage;
     private GatewayNode gateway;
     private int numberOfMessagesToBeSent;
-
     private String actionString = "";
+    private double simulationTime = 0;
 
 
     //constructor and specialised initializers for configurations
@@ -116,6 +115,15 @@ public class GeneralMesh {
             }
         }
     }
+    /**
+     * Populate Nodes in the network and define what other nodes they have access to.
+     * @param numberOfNodes
+     * @param broadcastRadius
+     * @param distanceBetweenNodes
+     */
+    private void doubleRowConfigurationInitialisation(int numberOfNodes, double broadcastRadius, double distanceBetweenNodes) {
+        //not yet implemented
+    }
 
     /**
      * this method defines the main running simulation of the network
@@ -125,7 +133,6 @@ public class GeneralMesh {
      */
     public void run() throws Exception {
 
-        //printState();
         while (incomplete()) {
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
@@ -140,15 +147,13 @@ public class GeneralMesh {
                 nodePriorityQueue.poll().IncrementTime(lapsedTime);
             }
             nodeWithMostImmanentEvent.handleEvent();
+            simulationTime += lapsedTime;
+
+            //check for message collisions in currently transmitting messages
             checkAndActionCorruptedMessages();
 
             //log the action occurring in this step and how long it took to occur
-            actionString += String.valueOf(nodeWithMostImmanentEvent.id) + " ";
-            if (nodeWithMostImmanentEvent.mode == Node.Mode.WAITING)
-                actionString += "sent message";
-            else
-                actionString += "staged message";
-            actionString += ", this took " + String.valueOf(lapsedTime) + " seconds \n";
+            appendActionString(nodeWithMostImmanentEvent, lapsedTime);
 
             //print out new state
             //printState();
@@ -156,6 +161,15 @@ public class GeneralMesh {
         //System.out.println(actionString);
 
 
+    }
+
+    private void appendActionString(Node nodeWithMostImmanentEvent, double lapsedTime) {
+        actionString += String.valueOf(nodeWithMostImmanentEvent.id) + " ";
+        if (nodeWithMostImmanentEvent.mode == Node.Mode.WAITING)
+            actionString += "sent message";
+        else
+            actionString += "staged message";
+        actionString += ", this took " + String.valueOf(lapsedTime) + " seconds \n";
     }
 
     private void checkAndActionCorruptedMessages() {
@@ -195,7 +209,7 @@ public class GeneralMesh {
 
     private void printState() {
         for (Node node : nodes) {
-            System.out.printf("node id: %d, message: %s%n", node.id, node.getMessageToBeSent() == null ? "NO MESSAGE" : node.getMessageToBeSent().payload);
+            System.out.printf("node id: %d, message: %s%n", node.id, node.messageToBeSent == null ? "NO MESSAGE" : node.messageToBeSent.payload);
         }
         System.out.print("-------------------------------\n");
         for (Node node : nodes) {

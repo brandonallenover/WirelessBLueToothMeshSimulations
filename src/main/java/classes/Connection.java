@@ -7,6 +7,7 @@ import java.util.List;
  * Connection is used to describe specific qualities
  * of the connection between nodes regarding its strength
  * for the calculations on the probability of successfull transmission
+ * and whether a message is currently being sent on said connection
  */
 
 public class Connection {

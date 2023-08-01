@@ -13,7 +13,6 @@ public class GatewayNode extends Node{
         for (int i = 0; i < numberOfMessages; i++) {
             messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes), 100));
         }
-        timeToNextEvent = random.nextDouble();
         stageMessageForSending();
     }
 
@@ -26,12 +25,12 @@ public class GatewayNode extends Node{
         }
         if (messages.isEmpty()) {
             this.messageToBeSent = null;
-            this.timeToNextEvent = Double.POSITIVE_INFINITY;
+            this.timeToNextTransmissionEvent = Double.POSITIVE_INFINITY;
             this.mode = Mode.WAITING;
             return;
         }
         this.messageToBeSent = messages.remove(0);
-        this.timeToNextEvent = random.nextDouble(); //timeToEvent possible range of 0 to 1
+        this.timeToNextTransmissionEvent = getrandomTime(50); //may be paramterized
         this.mode = Mode.WAITING;
 
     }
