@@ -11,15 +11,20 @@ import java.util.List;
  */
 
 public class Connection {
-    public Node to;
+    private Node to;
+    public int fromId;
+    public int toId;
     public int channel;
     public double strength = 0;
     public Message broadcastedMessage = null;
 
     //constructor
-    public Connection (Node to, double strength, int channel) {
+    public Connection (Node to, int fromId, double strength, int channel) {
         this.to = to;
+        this.toId = to.id;
+        this.fromId = fromId;
         this.strength = strength;
+        this.channel = channel;
     }
 
     //methods

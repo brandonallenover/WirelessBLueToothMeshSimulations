@@ -20,13 +20,23 @@
 import classes.Connection;
 import classes.Node;
 import simulations.GeneralMesh;
+import org.json.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        GeneralMesh generalMesh = new GeneralMesh(15, GeneralMesh.Configuration.SINGLEROW, 5, 2, 10);
+        GeneralMesh generalMesh = new GeneralMesh(5,  3, 1, 1)
+                .useSingleRowConfigurationInitialisation()
+                .useValidationMode("testfile_1.json");
         generalMesh.run();
 
         //[unicast retransmissions interval step + unicast retransmissions interval increment * (TTL - 1)]
+
+
+
+
 
 
     }

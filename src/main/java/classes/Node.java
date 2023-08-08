@@ -8,9 +8,14 @@ package classes;
 
 import simulations.GeneralMesh;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.*;
 
 public class Node {
+
+
     //enum describing node state
     public enum Mode {
         WAITING,
@@ -26,7 +31,7 @@ public class Node {
     private int sendingAttempt = 1;
     private final int maximumSendingAttempts = 3;//to become a parameter
     private int channelSendingOn = 1;
-    private int channelListeningOn = 1;
+    public int channelListeningOn = 1;
     private final int maximumChannel = 3;//to become a parameter
 
     //general state data
@@ -40,7 +45,7 @@ public class Node {
     private double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(10);
 
     //connections to all neighbouring nodes containing all relevant data
-    private List<List<Connection>> connections  = new ArrayList<>();
+    public List<List<Connection>> connections  = new ArrayList<>();
 
     //simulation data
     public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
@@ -48,13 +53,24 @@ public class Node {
     public List<Message> receiveFailureDueToCorrupted = new LinkedList<>();
     public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new LinkedList<>();
 
-
-
+    //use of csv file to make a controlled simulation to validate simulation
+    public boolean validationMode;
+    public double channelListeningTime;
+    public double backoffPeriodOfTransmission;
+    public double timeBetweenRetransmission;
 
 
     //constructors
     public Node(int id) {
         this.id = id;
+    }
+
+    public void setToValidationMode(double initialChannelListeningTime, double channelListeningTime, double backoffPeriodOfTransmission, double timeBetweenRetransmission) {
+        validationMode = true;
+        this.remainingTimeListeningOnCurrentChannel = initialChannelListeningTime;
+        this.channelListeningTime = channelListeningTime;
+        this.backoffPeriodOfTransmission = backoffPeriodOfTransmission;
+        this.timeBetweenRetransmission = timeBetweenRetransmission;
     }
 
     //general methods
@@ -97,7 +113,11 @@ public class Node {
     }
     public void incrementChannelListeningOn() {
         channelListeningOn++;
-        remainingTimeListeningOnCurrentChannel = 10;
+        if (validationMode) {
+            this.remainingTimeListeningOnCurrentChannel = this.channelListeningTime;
+        } else {
+            remainingTimeListeningOnCurrentChannel = 10;
+        }
         if (channelListeningOn > maximumChannel) {
             channelListeningOn = 1;
         }
@@ -164,7 +184,11 @@ public class Node {
         }
         //get the next message and get ready to send it
         this.messageToBeSent = receivedMessages.poll();
-        this.timeToNextTransmissionEvent = 15 + getrandomTime(5); //maximum of 20 ms
+        if (validationMode) {
+            this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
+        } else {
+            this.timeToNextTransmissionEvent = 15 + getrandomTime(5); //maximum of 20 ms
+        }
         this.sendingAttempt = 1;
         this.channelSendingOn = 1;
         this.mode = Mode.WAITING;
@@ -185,11 +209,11 @@ public class Node {
         }
         //at 1 Mbps with a packet size of 41 bytes (41*8)(bits)*1000(milliseconds/second) / 1,000,000(bits/second) = 0.328 milliseconds use this
         //this value will be subject to change
-        this.timeToNextTransmissionEvent = 0.5 + getrandomTime(0.2);//time taken to transmit the message
+        this.timeToNextTransmissionEvent = 1;//time taken to transmit the message
     }
 
-    public void handleEvent() throws Exception {
-        System.out.print("before event: id - " + this.id + ", mode - " + this.mode + ", attempt - " + this.sendingAttempt + ", channel - " + this.channelSendingOn + "\n");
+    public void handleEvent(double simulationTime) throws Exception {
+        System.out.print("before event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
         //if the event being handled is the changing of listening channel
         if (channelListeningOnRequiresChange()) {
             this.timeToNextTransmissionEvent -= this.remainingTimeListeningOnCurrentChannel;
@@ -209,7 +233,7 @@ public class Node {
             commenceSending();
         }
 
-        System.out.print("after event: id - " + this.id + ", mode - " + this.mode + ", attempt - " + this.sendingAttempt + ", channel - " + this.channelSendingOn + "\n");
+        System.out.print("after event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
         System.out.print("--------------------------------\n");
     }
 
@@ -227,14 +251,17 @@ public class Node {
         //handle incrementing the channel
         incrementChannelSendingOn();
         if (this.channelSendingOn != 1) {
-            this.timeToNextTransmissionEvent = getrandomTime(1);
-            this.mode = Mode.WAITING;
+            commenceSending();
             return;
         }
         //handle incrementing the attempt
         incrementSendingAttempt();
         if (this.sendingAttempt != 1) {
-            this.timeToNextTransmissionEvent = 1 + getrandomTime(1);
+            if (validationMode) {
+                this.timeToNextTransmissionEvent = this.timeBetweenRetransmission;
+            } else {
+                this.timeToNextTransmissionEvent = 1 + getrandomTime(1);
+            }
             this.mode = Mode.WAITING;
             return;
         }

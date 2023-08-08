@@ -1,0 +1,41 @@
+{
+    "object": {
+        "nodes":[
+            {
+                "initialChannelListeningTime" : 12.5,
+                "channelListeningTime" : 10,
+                "backoffPeriodOfTransmission" : 14,
+                "timeBetweenRetransmission" : 20
+            },
+            {
+                "initialChannelListeningTime" : 5,
+                "channelListeningTime" : 10,
+                "backoffPeriodOfTransmission" : 7.5,
+                "timeBetweenRetransmission" : 9.7
+            },
+            {
+                "initialChannelListeningTime" : 10,
+                "channelListeningTime" : 10,
+                "backoffPeriodOfTransmission" : 8.4,
+                "timeBetweenRetransmission" : 23
+            },
+            {
+                "initialChannelListeningTime" : 15.6,
+                "channelListeningTime" : 10,
+                "backoffPeriodOfTransmission" : 9.2,
+                "timeBetweenRetransmission" : 14.5
+            },
+            {
+                "initialChannelListeningTime" : 14,
+                "channelListeningTime" : 10,
+                "backoffPeriodOfTransmission" : 11.4,
+                "timeBetweenRetransmission" : 7.6
+            }
+        ],
+        "messages": [
+            {
+                "time": 0
+            }
+        ]
+    }
+}
