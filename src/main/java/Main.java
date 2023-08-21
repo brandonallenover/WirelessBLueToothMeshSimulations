@@ -17,6 +17,7 @@
  *
  */
 
+import Canvases.ResultsCanvas;
 import classes.Connection;
 import classes.Node;
 import simulations.GeneralMesh;
@@ -29,12 +30,10 @@ public class Main {
     public static void main(String[] args) throws Exception {
         GeneralMesh generalMesh = new GeneralMesh(5,  3, 1, 1)
                 .useSingleRowConfigurationInitialisation()
-                .useValidationMode("testfile_1.json");
-        generalMesh.run();
+                .useValidationMode("testfile_1.json")
+                .run();
 
-        //[unicast retransmissions interval step + unicast retransmissions interval increment * (TTL - 1)]
-
-
+//        [unicast retransmissions interval step + unicast retransmissions interval increment * (TTL - 1)]
 
 
 

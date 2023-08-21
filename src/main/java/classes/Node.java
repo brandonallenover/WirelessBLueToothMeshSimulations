@@ -6,15 +6,13 @@
 
 package classes;
 
-import simulations.GeneralMesh;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.util.*;
 
 public class Node {
 
+
+    private double startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
+    private boolean firstMessageStaged = true;
 
     //enum describing node state
     public enum Mode {
@@ -48,10 +46,13 @@ public class Node {
     public List<List<Connection>> connections  = new ArrayList<>();
 
     //simulation data
-    public List<Message> receiveFailureDueToAlreadyReceived = new LinkedList<>();
-    public List<Message> receiveFailureDueToBusySending = new LinkedList<>();
-    public List<Message> receiveFailureDueToCorrupted = new LinkedList<>();
-    public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new LinkedList<>();
+    public List<Message> receiveFailureDueToAlreadyReceived = new ArrayList<>();
+    public List<Message> receiveFailureDueToBusySending = new ArrayList<>();
+    public List<Message> receiveFailureDueToCorrupted = new ArrayList<>();
+    public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new ArrayList<>();
+    public List<String> sendingHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3, 4=rollback 5=noaction "key-time"
+    public List<String> listeningHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3 "key-time"
+    public List<String> recievingHistory = new ArrayList<>();//key u=uncorrupted, c=corrupted "corrupted-time"
 
     //use of csv file to make a controlled simulation to validate simulation
     public boolean validationMode;
@@ -68,6 +69,7 @@ public class Node {
     public void setToValidationMode(double initialChannelListeningTime, double channelListeningTime, double backoffPeriodOfTransmission, double timeBetweenRetransmission) {
         validationMode = true;
         this.remainingTimeListeningOnCurrentChannel = initialChannelListeningTime;
+        listeningHistory.add(String.valueOf(this.channelListeningOn) + "-" + String.valueOf(Math.round(this.remainingTimeListeningOnCurrentChannel * 10)));
         this.channelListeningTime = channelListeningTime;
         this.backoffPeriodOfTransmission = backoffPeriodOfTransmission;
         this.timeBetweenRetransmission = timeBetweenRetransmission;
@@ -116,11 +118,12 @@ public class Node {
         if (validationMode) {
             this.remainingTimeListeningOnCurrentChannel = this.channelListeningTime;
         } else {
-            remainingTimeListeningOnCurrentChannel = 10;
+            this.remainingTimeListeningOnCurrentChannel = 10;
         }
         if (channelListeningOn > maximumChannel) {
             channelListeningOn = 1;
         }
+        listeningHistory.add(String.valueOf(this.channelListeningOn) + "-" + String.valueOf(Math.round(this.remainingTimeListeningOnCurrentChannel * 10)));
     }
     public void incrementChannelSendingOn() {
         channelSendingOn++;
@@ -138,7 +141,7 @@ public class Node {
             return;
         timeToNextTransmissionEvent -= timePassed;
     }
-    public void receiveMessage(Message message, int channelSentOn) throws Exception {
+    public void receiveMessage(Message message, int channelSentOn, double simulationTime) throws Exception {
         //conditionality of what channel is being listened on
         if (channelSentOn != channelListeningOn) {
             receiveFailureDueToNotListeningOnCorrectChannel.add(message);
@@ -149,14 +152,15 @@ public class Node {
             receiveFailureDueToBusySending.add(message);
             return;
         }
-        //already received messages are ignored and logged
-        if (this.hasAlreadyReceivedMessage(message)) {
-            this.receiveFailureDueToAlreadyReceived.add(message);
-            return;
-        }
+        recievingHistory.add( (message.isCorrupted ? "c" : "u") + "-" + String.valueOf(Math.round(simulationTime * 10)));
         //corrupted messages are ignored and logged
         if (message.isCorrupted) {
             this.receiveFailureDueToCorrupted.add(message);
+            return;
+        }
+        //already received messages are ignored and logged
+        if (this.hasAlreadyReceivedMessage(message)) {
+            this.receiveFailureDueToAlreadyReceived.add(message);
             return;
         }
         //message is received and therefore is added to history
@@ -165,12 +169,12 @@ public class Node {
         this.appendMessageHistory(message);
         //if message is not already staged by the node the stage the just received one
         if(messageToBeSent == null) {
-            stageMessageForSending();
+            stageMessageForSending(simulationTime);
         }
 
     }
 
-    public void stageMessageForSending() throws Exception {
+    public void stageMessageForSending(double simulationTime) throws Exception {
         //if the node already has a message staged for sending it cannot stage another
         if (this.messageToBeSent != null) {
             throw new Exception("cannot stage another message while a staged message has not yet sent");
@@ -180,6 +184,7 @@ public class Node {
             this.messageToBeSent = null;
             this.timeToNextTransmissionEvent = Double.POSITIVE_INFINITY;
             this.mode = Mode.WAITING;
+            this.startTimeOfNoMessages = simulationTime;
             return;
         }
         //get the next message and get ready to send it
@@ -189,6 +194,16 @@ public class Node {
         } else {
             this.timeToNextTransmissionEvent = 15 + getrandomTime(5); //maximum of 20 ms
         }
+        if (this.firstMessageStaged) {
+            sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));
+            firstMessageStaged = false;
+        }
+        if (this.startTimeOfNoMessages > 0) {
+            Double timeWaitingWithNoMessage = simulationTime - this.startTimeOfNoMessages;
+            sendingHistory.add("5-" + String.valueOf(Math.round(timeWaitingWithNoMessage * 10)));
+            startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
+        }
+        sendingHistory.add("4-" + String.valueOf(Math.round(this.timeToNextTransmissionEvent * 10)));
         this.sendingAttempt = 1;
         this.channelSendingOn = 1;
         this.mode = Mode.WAITING;
@@ -210,6 +225,7 @@ public class Node {
         //at 1 Mbps with a packet size of 41 bytes (41*8)(bits)*1000(milliseconds/second) / 1,000,000(bits/second) = 0.328 milliseconds use this
         //this value will be subject to change
         this.timeToNextTransmissionEvent = 1;//time taken to transmit the message
+        sendingHistory.add(String.valueOf(this.channelSendingOn) + "-" + String.valueOf(Math.round(this.timeToNextTransmissionEvent * 10)));
     }
 
     public void handleEvent(double simulationTime) throws Exception {
@@ -225,9 +241,9 @@ public class Node {
 
         this.remainingTimeListeningOnCurrentChannel -= this.timeToNextTransmissionEvent;
         if (this.mode == Mode.SENDING) {
-            sendMessageToAllNodesInRadius();
+            sendMessageToAllNodesInRadius(simulationTime);
             if (this.sendingAttempt == 1 && this.channelSendingOn == 1) {//if all attempts on all channels are completed
-                stageMessageForSending();
+                stageMessageForSending(simulationTime);
             }
         } else {
             commenceSending();
@@ -237,14 +253,14 @@ public class Node {
         System.out.print("--------------------------------\n");
     }
 
-    protected void sendMessageToAllNodesInRadius() throws Exception {
+    protected void sendMessageToAllNodesInRadius(double simulationTime) throws Exception {
         for (List<Connection> connectionCandidates:
              connections) {
             //get connection corresponding to the channel
             Connection connection = connectionCandidates.get(this.channelSendingOn - 1);
             //send the message
             connection.getReceivingNode()
-                    .receiveMessage(connection.broadcastedMessage, this.channelSendingOn);
+                    .receiveMessage(connection.broadcastedMessage, this.channelSendingOn, simulationTime);
             //empty connection of its message
             connection.broadcastedMessage = null;
         }
@@ -262,6 +278,7 @@ public class Node {
             } else {
                 this.timeToNextTransmissionEvent = 1 + getrandomTime(1);
             }
+            sendingHistory.add("4-" + String.valueOf(Math.round(this.timeToNextTransmissionEvent * 10)));
             this.mode = Mode.WAITING;
             return;
         }

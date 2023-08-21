@@ -19,6 +19,7 @@
 
 package simulations;
 
+import Canvases.ResultsCanvas;
 import Comparators.ConnectionComparator;
 import Comparators.NodeComparator;
 import Comparators.NodeComparatorEventHandling;
@@ -30,9 +31,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -165,7 +164,7 @@ public class GeneralMesh {
         Message message = new Message(String.valueOf(0), -1, 0, numberOfNodes - 1, 100);
         nodes.get(1).appendMessageHistory(message);
         nodes.get(1).receivedMessages.add(message);
-        nodes.get(1).stageMessageForSending();
+        nodes.get(1).stageMessageForSending(simulationTime);
         //remove gateway node
         nodes.remove(0);
         //disconnect the first node from the gateway
@@ -182,7 +181,7 @@ public class GeneralMesh {
      * initial design is that node sends to all other nodes in range.
      * nodes that have already sent the message do not resend the message
      */
-    public void run() throws Exception {
+    public GeneralMesh run() throws Exception {
 
         while (incomplete()) {
             System.out.println("---------------------------");
@@ -219,8 +218,8 @@ public class GeneralMesh {
             //printState();
         }
         System.out.println(corruptionLogger);
-
-
+        new ResultsCanvas().run(nodes);
+        return this;
     }
 
     private void appendActionString(List<Node> nodesWithMostImmanentEvent, double lapsedTime) {
@@ -295,6 +294,8 @@ public class GeneralMesh {
             return true;
         return false;
     }
+
+    public List<Node> getNodes(){return nodes;}
 
 
 

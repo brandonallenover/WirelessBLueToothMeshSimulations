@@ -14,12 +14,12 @@ public class GatewayNode extends Node{
             messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes - 1), 100));
         }
         //primes the simulation
-        stageMessageForSending();
+        stageMessageForSending(0.0);
     }
 
 
     @Override
-    public void stageMessageForSending() throws Exception {
+    public void stageMessageForSending(double simulationTime) throws Exception {
         //if the node already has a message staged for sending it cannot stage another
         if (this.messageToBeSent != null) {
             throw new Exception("cannot stage another message while a staged message has not yet sent");
