@@ -11,8 +11,8 @@ import java.util.*;
 public class Node {
 
 
-    private double startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
-    private boolean firstMessageStaged = true;
+    protected double startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
+    protected boolean firstMessageStaged = true;
 
     //enum describing node state
     public enum Mode {
@@ -26,11 +26,11 @@ public class Node {
     protected Random random = new Random();
 
     //channel and attempt data
-    private int sendingAttempt = 1;
-    private final int maximumSendingAttempts = 3;//to become a parameter
-    private int channelSendingOn = 1;
+    protected int sendingAttempt = 1;
+    protected final int maximumSendingAttempts = 3;//to become a parameter
+    protected int channelSendingOn = 1;
     public int channelListeningOn = 1;
-    private final int maximumChannel = 3;//to become a parameter
+    protected final int maximumChannel = 3;//to become a parameter
 
     //general state data
     public Message messageToBeSent = null;
@@ -40,7 +40,7 @@ public class Node {
     public Queue<Message> receivedMessages = new LinkedList<>();
 
     //big gap of random time for changing the phase of the different nodes
-    private double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(10);
+    protected double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(10);
 
     //connections to all neighbouring nodes containing all relevant data
     public List<List<Connection>> connections  = new ArrayList<>();
@@ -85,7 +85,7 @@ public class Node {
     public boolean hasAlreadyReceivedMessage(Message message) {//for duplicate message detection
         return messageHistory.contains(message.getMessageIdentifier());
     }
-    private boolean channelListeningOnRequiresChange() {//for determining if the next event is channel swapping
+    protected boolean channelListeningOnRequiresChange() {//for determining if the next event is channel swapping
         return this.timeToNextTransmissionEvent > this.remainingTimeListeningOnCurrentChannel;
     }
 
@@ -231,11 +231,22 @@ public class Node {
     public void handleEvent(double simulationTime) throws Exception {
         System.out.print("before event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
         //if the event being handled is the changing of listening channel
+        if ((this instanceof GatewayNode)) {
+            System.out.println("yo");
+        }
         if (channelListeningOnRequiresChange()) {
             this.timeToNextTransmissionEvent -= this.remainingTimeListeningOnCurrentChannel;
             incrementChannelListeningOn();
             System.out.println("channel listening on was changed");
             System.out.println("--------------------------------");
+            return;
+        }
+        //if the gateway needs to send a message
+        if ((this instanceof GatewayNode)) {
+            System.out.println("yo");
+        }
+        if ((this instanceof GatewayNode) && messageToBeSent == null) {
+            ((GatewayNode)this).stageMessageForSending(simulationTime);
             return;
         }
 
@@ -254,6 +265,8 @@ public class Node {
     }
 
     protected void sendMessageToAllNodesInRadius(double simulationTime) throws Exception {
+        if (this instanceof GatewayNode)
+            System.out.println("break");
         for (List<Connection> connectionCandidates:
              connections) {
             //get connection corresponding to the channel

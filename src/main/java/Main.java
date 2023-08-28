@@ -28,7 +28,7 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        GeneralMesh generalMesh = new GeneralMesh(5,  3, 1, 1)
+        GeneralMesh generalMesh = new GeneralMesh(5,  3, 1, 3)
                 .useSingleRowConfigurationInitialisation()
                 .useValidationMode("testfile_1.json")
                 .run();

@@ -84,32 +84,24 @@ public class GeneralMesh {
      * These connections are based upon a single row of nodes in physical space.
      */
     public GeneralMesh useSingleRowConfigurationInitialisation() {
+        //add gateway first
+        nodes.add(gateway);
         //instantiate list of nodes
-        List<Node> tempNodes = new ArrayList<>();
-        for (int i = 0; i < numberOfNodes; i++) {
-            tempNodes.add(new Node(i));
+        for (int i = 0; i < numberOfNodes - 1; i++) {
+            nodes.add(new Node(i));
         }
-
-        //create their relationships
         int numberOfNodesReachablePerSide = (int)Math.floor(broadcastRadius / distanceBetweenNodes);
-        for (int i = 0; i < tempNodes.size(); i++) {
-            Node node = tempNodes.get(i);
+        //create their relationships
+        for (int i = 0; i < nodes.size(); i++) {
+            Node node = nodes.get(i);
             //nodes reachable and further on the list
             for (int j = i + numberOfNodesReachablePerSide; j > i; j--) {
-                if (j > tempNodes.size() - 1) continue;
+                if (j > nodes.size() - 1) continue;
                 double strength = 1 / ((j - i) * distanceBetweenNodes);//strength = 1 / the distance between the two nodes
-                Node node2 = tempNodes.get(j);
-                connectNodes(tempNodes.get(j), node, strength);
+                Node node2 = nodes.get(j);
+                connectNodes(nodes.get(j), node, strength);
             }
         }
-
-        //connect the first node to the gateway
-        nodes.addAll(tempNodes);
-        Node firstNode = nodes.stream()
-                .findFirst()
-                .get();
-        connectNodes(firstNode, gateway, 1);
-        nodes.add(0,gateway);
 
         //return this for builder pattern
         return this;
@@ -154,21 +146,30 @@ public class GeneralMesh {
         JSONArray JSONNodes = object.getJSONObject("object").getJSONArray("nodes");
         for (int i = 0; i < numberOfNodes; i++) {
             JSONObject JSONNode = JSONNodes.getJSONObject(i);
-            nodes.get(i + 1).setToValidationMode(JSONNode.getDouble("initialChannelListeningTime"),
+            nodes.get(i).setToValidationMode(JSONNode.getDouble("initialChannelListeningTime"),
                     JSONNode.getDouble("channelListeningTime"),
                     JSONNode.getDouble("backoffPeriodOfTransmission"),
                     JSONNode.getDouble("timeBetweenRetransmission"));
         }
         System.out.println("Note: validation mode only allows for one message at the beginning of the simulation");
-        //ready the message to be sent from the first nodes
-        Message message = new Message(String.valueOf(0), -1, 0, numberOfNodes - 1, 100);
-        nodes.get(1).appendMessageHistory(message);
-        nodes.get(1).receivedMessages.add(message);
-        nodes.get(1).stageMessageForSending(simulationTime);
-        //remove gateway node
-        nodes.remove(0);
-        //disconnect the first node from the gateway
-        nodes.get(1).connections.removeIf(conn -> conn.get(0).toId == -1);
+
+        Queue<Double> times = new LinkedList<>();
+        JSONArray JSONMessages = object.getJSONObject("object").getJSONArray("messages");
+        for (int i = 0; i < JSONMessages.length(); i++) {
+            JSONObject JSONMessage = JSONMessages.getJSONObject(i);
+            times.add(JSONMessage.getDouble("time"));
+        }
+        gateway.messageTimes = times;
+
+//        //ready the message to be sent from the first nodes
+//        Message message = new Message(String.valueOf(0), -1, 0, numberOfNodes - 1, 100);
+//        nodes.get(1).appendMessageHistory(message);
+//        nodes.get(1).receivedMessages.add(message);
+//        nodes.get(1).stageMessageForSending(simulationTime);
+//        //remove gateway node
+//        nodes.remove(0);
+//        //disconnect the first node from the gateway
+//        nodes.get(1).connections.removeIf(conn -> conn.get(0).toId == -1);
 
         //return this for builder pattern
         return this;
@@ -182,16 +183,21 @@ public class GeneralMesh {
      * nodes that have already sent the message do not resend the message
      */
     public GeneralMesh run() throws Exception {
-
+        gateway.stageMessageForSending(0.0);
         while (incomplete()) {
             System.out.println("---------------------------");
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
             nodePriorityQueue.addAll(nodes);
 
+            //update gateway node simulation  time
+            gateway.simulationTime = simulationTime;
+
             //poll the queue for the next event to occur
             List<Node> nodesWithMostImmanentEvent = new ArrayList<>();
             nodesWithMostImmanentEvent.add(nodePriorityQueue.poll());
+            if (nodePriorityQueue.peek() instanceof GatewayNode)
+                System.out.println("o");
             while(new NodeComparator().compare(nodePriorityQueue.peek(), nodesWithMostImmanentEvent.get(0)) == 0) {
                 nodesWithMostImmanentEvent.add(nodePriorityQueue.poll());
             }
@@ -291,6 +297,8 @@ public class GeneralMesh {
 
     private boolean incomplete() {
         if(nodes.stream().anyMatch(n -> n.getTimeToNextTransmissionEvent() != Double.POSITIVE_INFINITY))
+            return true;
+        if(!gateway.messages.isEmpty())
             return true;
         return false;
     }
