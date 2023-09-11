@@ -88,7 +88,11 @@ public class GeneralMesh {
         nodes.add(gateway);
         //instantiate list of nodes
         for (int i = 0; i < numberOfNodes - 1; i++) {
-            nodes.add(new Node(i));
+            Node newNode = new Node(i);
+            if (i % 2 == 0) {
+                newNode.isRelay = false;
+            }
+            nodes.add(newNode);
         }
         int numberOfNodesReachablePerSide = (int)Math.floor(broadcastRadius / distanceBetweenNodes);
         //create their relationships
@@ -161,16 +165,6 @@ public class GeneralMesh {
         }
         gateway.messageTimes = times;
 
-//        //ready the message to be sent from the first nodes
-//        Message message = new Message(String.valueOf(0), -1, 0, numberOfNodes - 1, 100);
-//        nodes.get(1).appendMessageHistory(message);
-//        nodes.get(1).receivedMessages.add(message);
-//        nodes.get(1).stageMessageForSending(simulationTime);
-//        //remove gateway node
-//        nodes.remove(0);
-//        //disconnect the first node from the gateway
-//        nodes.get(1).connections.removeIf(conn -> conn.get(0).toId == -1);
-
         //return this for builder pattern
         return this;
     }
@@ -186,7 +180,6 @@ public class GeneralMesh {
         //initial condition to the running simulation
         gateway.timeToNextTransmissionEvent = gateway.messageTimes.peek();
         while (incomplete()) {
-            System.out.println("---------------------------");
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
             nodePriorityQueue.addAll(nodes);
@@ -221,7 +214,6 @@ public class GeneralMesh {
             //print out new state
             //printState();
         }
-        System.out.println(corruptionLogger);
         return this;
     }
 
@@ -281,16 +273,6 @@ public class GeneralMesh {
         }
     }
 
-    private void printState() {
-        for (Node node : nodes) {
-            System.out.printf("node id: %d, message: %s%n", node.id, node.messageToBeSent == null ? "NO MESSAGE" : node.messageToBeSent.payload);
-        }
-        System.out.print("-------------------------------\n");
-        for (Node node : nodes) {
-            System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToNextEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToNextEvent());
-        }
-        System.out.print("\n-------------------------------\n");
-    }
 
     private boolean incomplete() {
         if(nodes.stream().anyMatch(n -> n.getTimeToNextTransmissionEvent() != Double.POSITIVE_INFINITY))
@@ -302,8 +284,22 @@ public class GeneralMesh {
 
     public List<Node> getNodes(){return nodes;}
 
+    public void printState() {
+        for (Node node : nodes) {
+            System.out.printf("node id: %d, message: %s%n", node.id, node.messageToBeSent == null ? "NO MESSAGE" : node.messageToBeSent.payload);
+        }
+        System.out.print("-------------------------------\n");
+        for (Node node : nodes) {
+            System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToNextEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToNextEvent());
+        }
+        System.out.print("\n-------------------------------\n");
+    }
     public GeneralMesh outputGraphic(){
         new ResultsCanvas().run(nodes, simulationTime);
+        return this;
+    }
+    public GeneralMesh printCorruptionLog(){
+        System.out.println(corruptionLogger);
         return this;
     }
 

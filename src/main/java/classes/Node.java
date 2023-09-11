@@ -21,6 +21,8 @@ public class Node {
     }
     //attributes
     public int id;
+    //attribute determining if a node can relay messages
+    public boolean isRelay = true;
 
     //random for generation of pseudo random numbers
     protected Random random = new Random();
@@ -50,6 +52,7 @@ public class Node {
     public List<Message> receiveFailureDueToBusySending = new ArrayList<>();
     public List<Message> receiveFailureDueToCorrupted = new ArrayList<>();
     public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new ArrayList<>();
+    public List<Message> messagesWithTimeToLiveOfZero = new ArrayList<>();
     public List<String> sendingHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3, 4=rollback 5=noaction "key-time"
     public List<String> sendingMessagesHistory = new ArrayList<>();
     public List<String> listeningHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3 "key-time"
@@ -161,6 +164,10 @@ public class Node {
             this.receiveFailureDueToCorrupted.add(message);
             return;
         }
+        //messages with a TTL of 0 are logged
+        if (message.timeToLive == 0) {
+            this.messagesWithTimeToLiveOfZero.add(message);
+        }
         //already received messages are ignored and logged
         if (this.hasAlreadyReceivedMessage(message)) {
             this.receiveFailureDueToAlreadyReceived.add(message);
@@ -189,8 +196,14 @@ public class Node {
                 message.timeReachedDestination = simulationTime;
             }
         } else { //else just add the message to a queue to be relayed
-            receivedMessages.add(message);
-            listeningMessagesHistory.add("message from " + message.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
+            if (message.timeToLive > 0) {
+                if ( this.isRelay ) {
+                    receivedMessages.add(message);
+                }
+                listeningMessagesHistory.add("message from " + message.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
+            } else {
+                listeningMessagesHistory.add("message from " + message.srcId + " depleted TTL--" + String.valueOf(Math.round(simulationTime * 10)));
+            }
         }
         //if message is not already staged by the node the stage the just received one
         if(messageToBeSent == null) {
@@ -242,7 +255,7 @@ public class Node {
             //clone message for the broadcast
             Message broadcastedMessage = this.messageToBeSent.clone();
             //edit the message however is required - ttl
-
+            broadcastedMessage.timeToLive -= 1;
             //get connection of correct channel
             Connection connection = connectionCandidates.get(this.channelSendingOn - 1);
             //put message in the connection
@@ -285,8 +298,6 @@ public class Node {
     }
 
     protected void sendMessageToAllNodesInRadius(double simulationTime) throws Exception {
-        if (this instanceof GatewayNode)
-            System.out.println("break");
         for (List<Connection> connectionCandidates:
              connections) {
             //get connection corresponding to the channel
