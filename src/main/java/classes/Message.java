@@ -13,9 +13,9 @@ public class Message implements Cloneable{
     public String history = "";
     public boolean isCorrupted = false;
 
-    public double timeToDestination = 0;
-    public double timeBackToGateway = 0;
-    public boolean returningToGateway = false;
+    public double timeSentFromGateway = 0;
+    public double timeReachedDestination = 0;
+    public double timeReturnedToGateway = 0;
 
 
     //constructor
@@ -27,16 +27,25 @@ public class Message implements Cloneable{
         this.timeToLive = timeToLive;
 
     }
-    public Message(String payload, int srcId, int sequenceNumber, int destinationId, int timeToLive, String history, double timeToDestination, double timeBackToGateway, boolean returningToGateway) {
+    public Message(
+            String payload,
+            int srcId,
+            int sequenceNumber,
+            int destinationId,
+            int timeToLive,
+            String history,
+            double timeSentFromGateway,
+            double timeReachedDestination,
+            double timeReturnedToGateway) {
         this.payload = payload;
         this.srcId = srcId;
         this.sequenceNumber = sequenceNumber;
         this.destinationId = destinationId;
         this.timeToLive = timeToLive;
         this.history = history;
-        this.timeToDestination = timeToDestination;
-        this.timeBackToGateway = timeBackToGateway;
-        this.returningToGateway = returningToGateway;
+        this.timeSentFromGateway = timeSentFromGateway;
+        this.timeReachedDestination = timeReachedDestination;
+        this.timeReturnedToGateway = timeReturnedToGateway;
     }
     //methods
     public void appendHistory(Node node) {
@@ -49,6 +58,15 @@ public class Message implements Cloneable{
         return this.srcId + "," + this.sequenceNumber + "," + this.destinationId + ";";
     }
     public Message clone(){
-        return new Message(new String(this.payload), this.srcId, this.sequenceNumber, this.destinationId, this.timeToLive, new String(this.history), timeToDestination, timeBackToGateway, returningToGateway);
+        return new Message(
+                new String(this.payload),
+                this.srcId,
+                this.sequenceNumber,
+                this.destinationId,
+                this.timeToLive,
+                new String(this.history),
+                timeSentFromGateway,
+                timeReachedDestination,
+                timeReturnedToGateway);
     }
 }

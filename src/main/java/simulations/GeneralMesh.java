@@ -183,15 +183,13 @@ public class GeneralMesh {
      * nodes that have already sent the message do not resend the message
      */
     public GeneralMesh run() throws Exception {
-        gateway.stageMessageForSending(0.0);
+        //initial condition to the running simulation
+        gateway.timeToNextTransmissionEvent = gateway.messageTimes.peek();
         while (incomplete()) {
             System.out.println("---------------------------");
             //make a queue of all the events in order of their time to occur
             PriorityQueue<Node> nodePriorityQueue = new PriorityQueue<>(new NodeComparator());
             nodePriorityQueue.addAll(nodes);
-
-            //update gateway node simulation  time
-            gateway.simulationTime = simulationTime;
 
             //poll the queue for the next event to occur
             List<Node> nodesWithMostImmanentEvent = new ArrayList<>();
@@ -224,7 +222,6 @@ public class GeneralMesh {
             //printState();
         }
         System.out.println(corruptionLogger);
-        new ResultsCanvas().run(nodes);
         return this;
     }
 
@@ -304,6 +301,11 @@ public class GeneralMesh {
     }
 
     public List<Node> getNodes(){return nodes;}
+
+    public GeneralMesh outputGraphic(){
+        new ResultsCanvas().run(nodes, simulationTime);
+        return this;
+    }
 
 
 

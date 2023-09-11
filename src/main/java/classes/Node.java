@@ -40,7 +40,7 @@ public class Node {
     public Queue<Message> receivedMessages = new LinkedList<>();
 
     //big gap of random time for changing the phase of the different nodes
-    protected double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(10);
+    protected double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(6, 10);
 
     //connections to all neighbouring nodes containing all relevant data
     public List<List<Connection>> connections  = new ArrayList<>();
@@ -51,7 +51,10 @@ public class Node {
     public List<Message> receiveFailureDueToCorrupted = new ArrayList<>();
     public List<Message> receiveFailureDueToNotListeningOnCorrectChannel = new ArrayList<>();
     public List<String> sendingHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3, 4=rollback 5=noaction "key-time"
+    public List<String> sendingMessagesHistory = new ArrayList<>();
     public List<String> listeningHistory = new ArrayList<>();//key 1=channel1, 2=channel2, 3=channel3 "key-time"
+    public List<String> listeningMessagesHistory = new ArrayList<>();
+
     public List<String> recievingHistory = new ArrayList<>();//key u=uncorrupted, c=corrupted "corrupted-time"
 
     //use of csv file to make a controlled simulation to validate simulation
@@ -64,12 +67,12 @@ public class Node {
     //constructors
     public Node(int id) {
         this.id = id;
+        listeningHistory.add(String.valueOf(this.channelListeningOn) + "-" + String.valueOf(Math.round(this.remainingTimeListeningOnCurrentChannel * 10)));
     }
 
     public void setToValidationMode(double initialChannelListeningTime, double channelListeningTime, double backoffPeriodOfTransmission, double timeBetweenRetransmission) {
         validationMode = true;
         this.remainingTimeListeningOnCurrentChannel = initialChannelListeningTime;
-        listeningHistory.add(String.valueOf(this.channelListeningOn) + "-" + String.valueOf(Math.round(this.remainingTimeListeningOnCurrentChannel * 10)));
         this.channelListeningTime = channelListeningTime;
         this.backoffPeriodOfTransmission = backoffPeriodOfTransmission;
         this.timeBetweenRetransmission = timeBetweenRetransmission;
@@ -104,8 +107,8 @@ public class Node {
     public double getTimeToNextTransmissionEvent() {//used to show if this node has anything to do
         return timeToNextTransmissionEvent;
     }
-    public double getrandomTime(double maximumValue) {//for generation of large random numbers
-        return random.nextDouble() * maximumValue;
+    public double getrandomTime(double minimumValue, double maximumValue) {//for generation of large random numbers
+        return minimumValue + random.nextDouble() * (maximumValue - minimumValue);
     }
     public void incrementSendingAttempt() {
         sendingAttempt++;
@@ -164,9 +167,31 @@ public class Node {
             return;
         }
         //message is received and therefore is added to history
-        receivedMessages.add(message);
         message.appendHistory(this);
         this.appendMessageHistory(message);
+        //if message has reached its destination send a confirmation message back to the gateway
+        if (message.destinationId == this.id) {
+            listeningMessagesHistory.add("message reached destination from " + message.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
+            Message returnMessage = new Message(
+                    String.valueOf(SequenceIDManagerSingleton.getSequenceIDCounter()), //payload may be updated to more applicable data
+                    this.id, //id of the source of the message
+                    SequenceIDManagerSingleton.getSequenceIDCounter(), //unique message number
+                    -1, //id of the gateway node
+                    100 //TTL not yet implemented
+            );
+            SequenceIDManagerSingleton.incrementSequenceIDCounter();
+            returnMessage.appendHistory(this);
+            this.appendMessageHistory(returnMessage);
+            receivedMessages.add(returnMessage);
+            if (this instanceof GatewayNode) {
+                message.timeReturnedToGateway = simulationTime;
+            } else {
+                message.timeReachedDestination = simulationTime;
+            }
+        } else { //else just add the message to a queue to be relayed
+            receivedMessages.add(message);
+            listeningMessagesHistory.add("message from " + message.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
+        }
         //if message is not already staged by the node the stage the just received one
         if(messageToBeSent == null) {
             stageMessageForSending(simulationTime);
@@ -192,7 +217,7 @@ public class Node {
         if (validationMode) {
             this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
         } else {
-            this.timeToNextTransmissionEvent = 15 + getrandomTime(5); //maximum of 20 ms
+            this.timeToNextTransmissionEvent = getrandomTime(10, 20); //maximum of 20 ms
         }
         if (this.firstMessageStaged) {
             sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));
@@ -207,6 +232,7 @@ public class Node {
         this.sendingAttempt = 1;
         this.channelSendingOn = 1;
         this.mode = Mode.WAITING;
+        sendingMessagesHistory.add("message to " + this.messageToBeSent.destinationId + "--" + String.valueOf(Math.round(simulationTime * 10)));
     }
 
     public void commenceSending() {
@@ -231,9 +257,6 @@ public class Node {
     public void handleEvent(double simulationTime) throws Exception {
         System.out.print("before event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
         //if the event being handled is the changing of listening channel
-        if ((this instanceof GatewayNode)) {
-            System.out.println("yo");
-        }
         if (channelListeningOnRequiresChange()) {
             this.timeToNextTransmissionEvent -= this.remainingTimeListeningOnCurrentChannel;
             incrementChannelListeningOn();
@@ -242,9 +265,6 @@ public class Node {
             return;
         }
         //if the gateway needs to send a message
-        if ((this instanceof GatewayNode)) {
-            System.out.println("yo");
-        }
         if ((this instanceof GatewayNode) && messageToBeSent == null) {
             ((GatewayNode)this).stageMessageForSending(simulationTime);
             return;
@@ -289,7 +309,7 @@ public class Node {
             if (validationMode) {
                 this.timeToNextTransmissionEvent = this.timeBetweenRetransmission;
             } else {
-                this.timeToNextTransmissionEvent = 1 + getrandomTime(1);
+                this.timeToNextTransmissionEvent = getrandomTime(10, 15);
             }
             sendingHistory.add("4-" + String.valueOf(Math.round(this.timeToNextTransmissionEvent * 10)));
             this.mode = Mode.WAITING;

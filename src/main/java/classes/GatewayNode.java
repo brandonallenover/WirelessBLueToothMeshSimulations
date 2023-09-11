@@ -1,26 +1,35 @@
 package classes;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
 public class GatewayNode extends Node{
-    public List<Message> messages;
-    public Queue<Double> messageTimes;
-    public double simulationTime;
+    public List<Message> messages = new ArrayList<>();
+    public Queue<Double> messageTimes = new LinkedList<>();
 
 
     public GatewayNode(int id, int numberOfMessages, int numberOfNodes) throws Exception {
         super(id);
-        messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
-            messages.add(new Message(String.valueOf(i), -1, i, random.nextInt(numberOfNodes - 1), 100));
+            messages.add(new Message(
+                    String.valueOf(i), //payload may be updated to more applicable data
+                    -1, //id of the source of the message
+                    SequenceIDManagerSingleton.getSequenceIDCounter(), //unique message number
+                    random.nextInt(numberOfNodes - 1), //random destination of one of the other nodes of the network
+                    100 //TTL not yet implemented
+            ));
+            if (!validationMode) {
+                if (messageTimes.isEmpty())
+                    messageTimes.add(0.0);
+                messageTimes.add(messageTimes.peek() + getrandomTime(50, 70));
+            }
+            SequenceIDManagerSingleton.incrementSequenceIDCounter();
         }
     }
     @Override
     public double getTimeToNextEvent() {//used to show if this node has anything to do
-        if (messageToBeSent == null && !messageTimes.isEmpty())
-            System.out.println("test");
         return Math.min(timeToNextTransmissionEvent, remainingTimeListeningOnCurrentChannel);
     }
 
@@ -49,11 +58,14 @@ public class GatewayNode extends Node{
             return;
         }
         this.messageToBeSent = messages.remove(0);
+        this.messageToBeSent.appendHistory(this);
+        this.appendMessageHistory(this.messageToBeSent);
+        this.messageToBeSent.timeSentFromGateway = simulationTime;
         messageTimes.poll();
         if (validationMode) {
             this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
         } else {
-            this.timeToNextTransmissionEvent = 15 + getrandomTime(5); //maximum of 20 ms
+            this.timeToNextTransmissionEvent = 15 + getrandomTime(3, 5); //maximum of 20 ms
         }
         if (this.firstMessageStaged) {
             sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));
@@ -65,7 +77,7 @@ public class GatewayNode extends Node{
             startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
         }
         sendingHistory.add("4-" + String.valueOf(Math.round(this.timeToNextTransmissionEvent * 10)));
-
+        sendingMessagesHistory.add("message to " + this.messageToBeSent.destinationId + "--" + String.valueOf(Math.round(simulationTime * 10)));
 
     }
     @Override
