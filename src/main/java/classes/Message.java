@@ -1,14 +1,16 @@
 package classes;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Message implements Cloneable{
+public class Message implements Cloneable, Serializable {
     //attributes
     public String payload;
     public int srcId;
     public int sequenceNumber;
     public int destinationId;
+    public int originalDestinationId;
     public int timeToLive;
     public String history = "";
     public boolean isCorrupted = false;
@@ -32,6 +34,7 @@ public class Message implements Cloneable{
             int srcId,
             int sequenceNumber,
             int destinationId,
+            int originalDestinationId,
             int timeToLive,
             String history,
             double timeSentFromGateway,
@@ -41,6 +44,7 @@ public class Message implements Cloneable{
         this.srcId = srcId;
         this.sequenceNumber = sequenceNumber;
         this.destinationId = destinationId;
+        this.originalDestinationId = destinationId;
         this.timeToLive = timeToLive;
         this.history = history;
         this.timeSentFromGateway = timeSentFromGateway;
@@ -63,10 +67,15 @@ public class Message implements Cloneable{
                 this.srcId,
                 this.sequenceNumber,
                 this.destinationId,
+                this.originalDestinationId,
                 this.timeToLive,
                 new String(this.history),
                 timeSentFromGateway,
                 timeReachedDestination,
                 timeReturnedToGateway);
+    }
+    public double getRTT(){
+        return timeReachedDestination - timeSentFromGateway +
+                timeReturnedToGateway - timeReachedDestination;
     }
 }

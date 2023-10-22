@@ -23,6 +23,7 @@ import Canvases.ResultsCanvas;
 import Comparators.ConnectionComparator;
 import Comparators.NodeComparator;
 import Comparators.NodeComparatorEventHandling;
+import ResultObjects.MessageYield;
 import classes.Connection;
 import classes.GatewayNode;
 import classes.Message;
@@ -31,11 +32,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
 
-public class GeneralMesh {
+public class GeneralMesh implements Serializable {
     /**
      * normalised physical topology of the nodes described in the top comment
      * defines what nodes can connect to what other nodes
@@ -89,9 +91,6 @@ public class GeneralMesh {
         //instantiate list of nodes
         for (int i = 0; i < numberOfNodes - 1; i++) {
             Node newNode = new Node(i);
-            if (i % 2 == 0) {
-                newNode.isRelay = false;
-            }
             nodes.add(newNode);
         }
         int numberOfNodesReachablePerSide = (int)Math.floor(broadcastRadius / distanceBetweenNodes);
@@ -187,8 +186,6 @@ public class GeneralMesh {
             //poll the queue for the next event to occur
             List<Node> nodesWithMostImmanentEvent = new ArrayList<>();
             nodesWithMostImmanentEvent.add(nodePriorityQueue.poll());
-            if (nodePriorityQueue.peek() instanceof GatewayNode)
-                System.out.println("o");
             while(new NodeComparator().compare(nodePriorityQueue.peek(), nodesWithMostImmanentEvent.get(0)) == 0) {
                 nodesWithMostImmanentEvent.add(nodePriorityQueue.poll());
             }
@@ -284,6 +281,33 @@ public class GeneralMesh {
 
     public List<Node> getNodes(){return nodes;}
 
+    public GeneralMesh graphMessageTransmissions(){
+        new ResultsCanvas().run(nodes, simulationTime);
+        return this;
+    }
+    public GeneralMesh outputMessageYield(){
+        String messageOutput = "message %s sent to node %d%n took %fms to reach destination and %fms to return to gateway%n resulting in a RRT of %f%n";
+        for (Message message :
+                gateway.receivedMessages) {
+            System.out.printf(messageOutput,
+                    message.payload,
+                    message.srcId,
+                    message.timeReachedDestination - message.timeSentFromGateway,
+                    message.timeReturnedToGateway - message.timeReachedDestination,
+                    message.getRTT());
+        }
+        return this;
+    }
+    public MessageYield getMessageYield() {
+        int totalSuccessfulReceivedMessages = 0;
+        int totalCorruptedReceivedMessages = 0;
+        for (Node node :
+                nodes) {
+            totalSuccessfulReceivedMessages += node.receivedMessages.size();
+            totalCorruptedReceivedMessages += node.receiveFailureDueToCorrupted.size();
+        }
+        return new MessageYield(new ArrayList<>(gateway.sentMessages), new ArrayList<>(gateway.receivedMessages), nodes.size(), totalSuccessfulReceivedMessages, totalCorruptedReceivedMessages);
+    }
     public void printState() {
         for (Node node : nodes) {
             System.out.printf("node id: %d, message: %s%n", node.id, node.messageToBeSent == null ? "NO MESSAGE" : node.messageToBeSent.payload);
@@ -293,10 +317,6 @@ public class GeneralMesh {
             System.out.printf("id: %d, time left: %.2f, ", node.id, node.getTimeToNextEvent() == Double.POSITIVE_INFINITY ? 0.0 : node.getTimeToNextEvent());
         }
         System.out.print("\n-------------------------------\n");
-    }
-    public GeneralMesh outputGraphic(){
-        new ResultsCanvas().run(nodes, simulationTime);
-        return this;
     }
     public GeneralMesh printCorruptionLog(){
         System.out.println(corruptionLogger);

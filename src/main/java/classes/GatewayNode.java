@@ -1,12 +1,14 @@
 package classes;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class GatewayNode extends Node{
+public class GatewayNode extends Node implements Serializable {
     public List<Message> messages = new ArrayList<>();
+    public List<Message> sentMessages = new ArrayList<>();
     public Queue<Double> messageTimes = new LinkedList<>();
 
 
@@ -23,7 +25,7 @@ public class GatewayNode extends Node{
             if (!validationMode) {
                 if (messageTimes.isEmpty())
                     messageTimes.add(0.0);
-                messageTimes.add(messageTimes.peek() + getrandomTime(50, 70));
+                messageTimes.add(messageTimes.peek() + getrandomTime(70, 100));
             }
             SequenceIDManagerSingleton.incrementSequenceIDCounter();
         }
@@ -58,6 +60,7 @@ public class GatewayNode extends Node{
             return;
         }
         this.messageToBeSent = messages.remove(0);
+        sentMessages.add(this.messageToBeSent);
         this.messageToBeSent.appendHistory(this);
         this.appendMessageHistory(this.messageToBeSent);
         this.messageToBeSent.timeSentFromGateway = simulationTime;

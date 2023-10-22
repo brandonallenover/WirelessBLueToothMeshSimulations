@@ -1,5 +1,6 @@
 package classes;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +11,7 @@ import java.util.List;
  * and whether a message is currently being sent on said connection
  */
 
-public class Connection {
+public class Connection implements Serializable {
     private Node to;
     public int fromId;
     public int toId;

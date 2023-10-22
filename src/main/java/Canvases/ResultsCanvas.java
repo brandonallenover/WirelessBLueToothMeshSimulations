@@ -25,7 +25,7 @@ public class ResultsCanvas extends JPanel {
     public void run(List<Node> nodes, double simulationTime) {
         this.nodes = nodes;
         this.simulationTime = simulationTime;
-        JFrame frame = new JFrame("Experimental Results");
+        JFrame frame = new JFrame("Simulation Experimental Results");
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setPreferredSize(new Dimension( Integer.parseInt(String.valueOf(Math.round(simulationTime * 10))),nodes.size() * SECTION_HEIGHT + 40));
         setBackground(Color.WHITE);
@@ -34,6 +34,7 @@ public class ResultsCanvas extends JPanel {
         scrollFrame.setPreferredSize(screenSize);
         frame.add(scrollFrame);
         frame.pack();
+        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
@@ -116,7 +117,7 @@ public class ResultsCanvas extends JPanel {
         g.setColor(Color.BLACK);
         int bottomOfTheVerticalLine = 40 + (SECTION_HEIGHT * nodes.size());
         g.drawString("Time (ms)", 10,30);
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0; i < (int)simulationTime; i++) {
             g.drawString(String.valueOf(i * 10), 100 + 100 * i,30);
             g.drawLine(100 + 100 * i, 40, 100 + 100 * i, bottomOfTheVerticalLine);
         }

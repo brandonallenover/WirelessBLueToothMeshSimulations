@@ -6,9 +6,10 @@
 
 package classes;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Node {
+public class Node implements Serializable {
 
 
     protected double startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
@@ -39,6 +40,7 @@ public class Node {
     public Mode mode = Mode.WAITING;
     public double timeToNextTransmissionEvent = Double.POSITIVE_INFINITY;
     private String messageHistory = "";//currently unlimited length of history
+    public String activityLog = "";
     public Queue<Message> receivedMessages = new LinkedList<>();
 
     //big gap of random time for changing the phase of the different nodes
@@ -177,23 +179,22 @@ public class Node {
         message.appendHistory(this);
         this.appendMessageHistory(message);
         //if message has reached its destination send a confirmation message back to the gateway
-        if (message.destinationId == this.id) {
+        if (message.destinationId == this.id ) {
             listeningMessagesHistory.add("message reached destination from " + message.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
-            Message returnMessage = new Message(
-                    String.valueOf(SequenceIDManagerSingleton.getSequenceIDCounter()), //payload may be updated to more applicable data
-                    this.id, //id of the source of the message
-                    SequenceIDManagerSingleton.getSequenceIDCounter(), //unique message number
-                    -1, //id of the gateway node
-                    100 //TTL not yet implemented
-            );
-            SequenceIDManagerSingleton.incrementSequenceIDCounter();
-            returnMessage.appendHistory(this);
-            this.appendMessageHistory(returnMessage);
-            receivedMessages.add(returnMessage);
             if (this instanceof GatewayNode) {
                 message.timeReturnedToGateway = simulationTime;
+                receivedMessages.add(message);
             } else {
-                message.timeReachedDestination = simulationTime;
+                Message returnMessage = message.clone();
+                returnMessage.payload = message.payload + String.valueOf(SequenceIDManagerSingleton.getSequenceIDCounter());
+                returnMessage.srcId = this.id;
+                returnMessage.destinationId = -1;
+                returnMessage.sequenceNumber = SequenceIDManagerSingleton.getSequenceIDCounter();
+                returnMessage.timeReachedDestination = simulationTime;
+                SequenceIDManagerSingleton.incrementSequenceIDCounter();
+                returnMessage.appendHistory(this);
+                this.appendMessageHistory(returnMessage);
+                receivedMessages.add(returnMessage);
             }
         } else { //else just add the message to a queue to be relayed
             if (message.timeToLive > 0) {
@@ -245,7 +246,7 @@ public class Node {
         this.sendingAttempt = 1;
         this.channelSendingOn = 1;
         this.mode = Mode.WAITING;
-        sendingMessagesHistory.add("message to " + this.messageToBeSent.destinationId + "--" + String.valueOf(Math.round(simulationTime * 10)));
+        sendingMessagesHistory.add("message to " + this.messageToBeSent.destinationId + " from " + this.messageToBeSent.srcId + "--" + String.valueOf(Math.round(simulationTime * 10)));
     }
 
     public void commenceSending() {
@@ -268,13 +269,15 @@ public class Node {
     }
 
     public void handleEvent(double simulationTime) throws Exception {
-        System.out.print("before event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
+        activityLog += "before event: \nid-" + this.id +
+                ", mode-" + this.mode + ", attempt-" + this.sendingAttempt +
+                ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n";
         //if the event being handled is the changing of listening channel
         if (channelListeningOnRequiresChange()) {
             this.timeToNextTransmissionEvent -= this.remainingTimeListeningOnCurrentChannel;
             incrementChannelListeningOn();
-            System.out.println("channel listening on was changed");
-            System.out.println("--------------------------------");
+            activityLog += "channel listening on was changed\n";
+            activityLog += "--------------------------------\n";
             return;
         }
         //if the gateway needs to send a message
@@ -293,8 +296,10 @@ public class Node {
             commenceSending();
         }
 
-        System.out.print("after event: \nid-" + this.id + ", mode-" + this.mode + ", attempt-" + this.sendingAttempt + ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n");
-        System.out.print("--------------------------------\n");
+        activityLog += "after event: \nid-" + this.id +
+                ", mode-" + this.mode + ", attempt-" + this.sendingAttempt +
+                ", channel-" + this.channelSendingOn + ", simulation time-" + simulationTime + "\n";
+        activityLog += "--------------------------------\n";
     }
 
     protected void sendMessageToAllNodesInRadius(double simulationTime) throws Exception {
