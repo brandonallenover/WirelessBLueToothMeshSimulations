@@ -74,7 +74,7 @@ public class GatewayNode extends Node implements Serializable {
         if (validationMode) {
             this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
         } else {
-            this.timeToNextTransmissionEvent = getrandomTime(15, 20);
+            this.timeToNextTransmissionEvent = getrandomTime(this.minimumWaitTime, this.maximumWaitTime);
         }
         if (this.firstMessageStaged) {
             sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));

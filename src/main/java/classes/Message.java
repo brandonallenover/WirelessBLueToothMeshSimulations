@@ -4,13 +4,38 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * class Message
+ * the object being sent between Node instances through the medium of Connection instances
+ * holds relevant simulation data and results data
+ */
 public class Message implements Cloneable, Serializable {
-    //attributes
+    /**
+     * information that is sent
+     * at this point in implementation this does not hold any meaningful data
+     */
     public String payload;
+    /**
+     * the node id of the original sender
+     */
     public int srcId;
+    /**
+     * a unique identifying number of the message used to determine
+     * if the message has been received before
+     */
     public int sequenceNumber;
+    /**
+     * the node id of the target
+     */
     public int destinationId;
+    /**
+     * always the id of the gateway node
+     */
     public int originalDestinationId;
+    /**
+     * a TTL
+     * always used as an extremely high number this value does not factor into the
+     */
     public int timeToLive;
     public String history = "";
     public boolean isCorrupted = false;
