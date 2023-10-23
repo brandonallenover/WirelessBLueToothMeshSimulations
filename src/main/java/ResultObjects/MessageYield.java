@@ -12,19 +12,25 @@ public class MessageYield implements java.io.Serializable{
     public int totalSuccessfullyReceivedMessages;
     public int totalCorruptedReceivedMessages;
     public int numberOfSimulations = 1;
+    public int minimumWaitTime;
+    public int maximumWaitTime;
 
     public MessageYield(
             List<Message> messagesFromGateway,
             List<Message> messagesToGateway,
             int numberOfNodes,
             int totalSuccessfullyReceivedMessages,
-            int totalCorruptedReceivedMessages
+            int totalCorruptedReceivedMessages,
+            int minimumWaitTime,
+            int maximumWaitTime
     ){
         this.messagesFromGateway = new ArrayList<>(messagesFromGateway);
         this.messagesToGateway = new ArrayList<>(messagesToGateway);
         this.numberOfNodes = numberOfNodes;
         this.totalSuccessfullyReceivedMessages = totalSuccessfullyReceivedMessages;
         this.totalCorruptedReceivedMessages = totalCorruptedReceivedMessages;
+        this.minimumWaitTime = minimumWaitTime;
+        this.maximumWaitTime = maximumWaitTime;
     }
     public MessageYield(
             List<Message> messagesFromGateway,
@@ -32,7 +38,9 @@ public class MessageYield implements java.io.Serializable{
             int numberOfNodes,
             int totalSuccessfullyReceivedMessages,
             int totalCorruptedReceivedMessages,
-            int numberOfSimulations
+            int numberOfSimulations,
+            int minimumWaitTime,
+            int maximumWaitTime
     ) {
         this.messagesFromGateway = new ArrayList<>(messagesFromGateway);
         this.messagesToGateway = new ArrayList<>(messagesToGateway);
@@ -40,6 +48,8 @@ public class MessageYield implements java.io.Serializable{
         this.totalSuccessfullyReceivedMessages = totalSuccessfullyReceivedMessages;
         this.totalCorruptedReceivedMessages = totalCorruptedReceivedMessages;
         this.numberOfSimulations = numberOfSimulations;
+        this.minimumWaitTime = minimumWaitTime;
+        this.maximumWaitTime = maximumWaitTime;
     }
     public static MessageYield average(List<MessageYield> yields) {
         int sumOfTotalSuccessfullyReceivedMessages = 0;
@@ -53,7 +63,7 @@ public class MessageYield implements java.io.Serializable{
             sumOfTotalSuccessfullyReceivedMessages += messageYield.totalSuccessfullyReceivedMessages;
             sumOfTotalCorruptedReceivedMessages += messageYield.totalCorruptedReceivedMessages;
         }
-        return new MessageYield(totalMessagesFromGateway, totalMessagestoGateway, yields.get(0).numberOfNodes, sumOfTotalSuccessfullyReceivedMessages, sumOfTotalCorruptedReceivedMessages, yields.size());
+        return new MessageYield(totalMessagesFromGateway, totalMessagestoGateway, yields.get(0).numberOfNodes, sumOfTotalSuccessfullyReceivedMessages, sumOfTotalCorruptedReceivedMessages, yields.size(), yields.get(0).minimumWaitTime, yields.get(0).maximumWaitTime);
     }
 
     public double getAverageRTT() { //the lower the value the lower the

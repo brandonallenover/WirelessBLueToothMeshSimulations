@@ -12,8 +12,14 @@ public class GatewayNode extends Node implements Serializable {
     public Queue<Double> messageTimes = new LinkedList<>();
 
 
-    public GatewayNode(int id, int numberOfMessages, int numberOfNodes) throws Exception {
-        super(id);
+    public GatewayNode(
+            int id,
+            int minimumWaitTime,
+            int maximumWaitTime,
+            int numberOfMessages,
+            int numberOfNodes
+    ) throws Exception {
+        super(id, minimumWaitTime, maximumWaitTime);
         for (int i = 0; i < numberOfMessages; i++) {
             messages.add(new Message(
                     String.valueOf(i), //payload may be updated to more applicable data
@@ -25,7 +31,7 @@ public class GatewayNode extends Node implements Serializable {
             if (!validationMode) {
                 if (messageTimes.isEmpty())
                     messageTimes.add(0.0);
-                messageTimes.add(messageTimes.peek() + getrandomTime(70, 100));
+                messageTimes.add(messageTimes.peek() + getrandomTime(201, 250));
             }
             SequenceIDManagerSingleton.incrementSequenceIDCounter();
         }
@@ -68,7 +74,7 @@ public class GatewayNode extends Node implements Serializable {
         if (validationMode) {
             this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
         } else {
-            this.timeToNextTransmissionEvent = 15 + getrandomTime(3, 5); //maximum of 20 ms
+            this.timeToNextTransmissionEvent = getrandomTime(15, 20);
         }
         if (this.firstMessageStaged) {
             sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));

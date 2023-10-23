@@ -16,20 +16,32 @@ public class SimulationRunner implements Serializable {
     private List<GeneralMesh> simulations = new ArrayList<>();
     private List<MessageYield> yields = new ArrayList<>();
     public String resultFileName = "results_default.ser";
-    public  SimulationRunner runSimulationsWithSpecifiedNumberOfNodes(int[] nodesInSimulation, double broadcastRadius, double distanceBetweenNodes, int numberOfMessages, int numberOfrepetitions) throws Exception {
+
+    public SimulationRunner(String resultFileName) {
+        this.resultFileName = resultFileName;
+    }
+    public  SimulationRunner runSimulationsWithSpecifiedNumberOfNodes(
+            int[] nodesInSimulation,
+            double broadcastRadius,
+            double distanceBetweenNodes,
+            int numberOfMessages,
+            int numberOfRepetitions,
+            int minimumWaitTime,
+            int maximumWaitTime
+    ) throws Exception {
         long totalSim = currentTimeMillis();
         for (int i = 0; i < nodesInSimulation.length; i++) {
             List<MessageYield> yieldsToBeAveraged = new ArrayList<>();
-            for (int r = 0; r < numberOfrepetitions; r++) {
+            for (int r = 0; r < numberOfRepetitions; r++) {
                 System.out.println("sim with " + nodesInSimulation[i] + " nodes");
                 long currentTime = currentTimeMillis();
                 simulations.add(
-                        new GeneralMesh(nodesInSimulation[i], broadcastRadius, distanceBetweenNodes, numberOfMessages)
+                        new GeneralMesh(nodesInSimulation[i], broadcastRadius, distanceBetweenNodes, numberOfMessages, minimumWaitTime, maximumWaitTime)
                                 .useSingleRowConfigurationInitialisation()
                                 .run()
                         //.graphMessageTransmissions()
                 );
-                yieldsToBeAveraged.add(simulations.get(r + numberOfrepetitions * i).getMessageYield());
+                yieldsToBeAveraged.add(simulations.get(r + numberOfRepetitions * i).getMessageYield());
                 long executionTime = (currentTimeMillis() - currentTime) / 1000;
                 System.out.println("completed in " + executionTime + " seconds");
             }
@@ -60,6 +72,46 @@ public class SimulationRunner implements Serializable {
         file.close();
         System.out.println("simulations loaded");
         return result;
+    }
+    public  SimulationRunner runSimulationsWithSpecifiedNumberOfNodesAndWaitTimes(
+            int[] nodesInSimulation,
+            double broadcastRadius,
+            double distanceBetweenNodes,
+            int numberOfMessages,
+            int numberOfRepetitions,
+            int[] minimumWaitTime,
+            int[] maximumWaitTime
+    ) throws Exception {
+        long totalSim = currentTimeMillis();
+        for (int i = 0; i < nodesInSimulation.length; i++) {
+            List<MessageYield> yieldsToBeAveraged = new ArrayList<>();
+            for (int r = 0; r < numberOfRepetitions; r++) {
+                System.out.println("sim with " + nodesInSimulation[i] + " nodes");
+                long currentTime = currentTimeMillis();
+                simulations.add(
+                        new GeneralMesh(nodesInSimulation[i], broadcastRadius, distanceBetweenNodes, numberOfMessages, minimumWaitTime[i], maximumWaitTime[i])
+                                .useSingleRowConfigurationInitialisation()
+                                .run()
+                        //.graphMessageTransmissions()
+                );
+                yieldsToBeAveraged.add(simulations.get(r + numberOfRepetitions * i).getMessageYield());
+                long executionTime = (currentTimeMillis() - currentTime) / 1000;
+                System.out.println("completed in " + executionTime + " seconds");
+            }
+            yields.add(MessageYield.average(yieldsToBeAveraged));
+        }
+        long totalExecutionTime = (currentTimeMillis() - totalSim) / 1000;
+        System.out.println("entire simulation completed in " + totalExecutionTime + " seconds");
+        //save to ser file
+        FileOutputStream file = new FileOutputStream(resultFileName);
+        ObjectOutputStream out = new ObjectOutputStream(file);
+        //serialization of object
+        out.writeObject(this);
+        //close
+        out.close();
+        file.close();
+
+        return this;
     }
 
     public SimulationRunner graphMessageYield() {

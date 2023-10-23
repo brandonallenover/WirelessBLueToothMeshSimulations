@@ -11,6 +11,10 @@ import java.util.*;
 
 public class Node implements Serializable {
 
+    //experimental variables
+    public int minimumWaitTime;
+    public int maximumWaitTime;
+
 
     protected double startTimeOfNoMessages = Double.NEGATIVE_INFINITY;
     protected boolean firstMessageStaged = true;
@@ -44,7 +48,7 @@ public class Node implements Serializable {
     public Queue<Message> receivedMessages = new LinkedList<>();
 
     //big gap of random time for changing the phase of the different nodes
-    protected double remainingTimeListeningOnCurrentChannel = 10 + getrandomTime(6, 10);
+    protected double remainingTimeListeningOnCurrentChannel = getrandomTime(30, 70);
 
     //connections to all neighbouring nodes containing all relevant data
     public List<List<Connection>> connections  = new ArrayList<>();
@@ -70,8 +74,10 @@ public class Node implements Serializable {
 
 
     //constructors
-    public Node(int id) {
+    public Node(int id, int minimumWaitTime , int maximumWaitTime) {
         this.id = id;
+        this.minimumWaitTime =minimumWaitTime;
+        this.maximumWaitTime =maximumWaitTime;
         listeningHistory.add(String.valueOf(this.channelListeningOn) + "-" + String.valueOf(Math.round(this.remainingTimeListeningOnCurrentChannel * 10)));
     }
 
@@ -126,7 +132,7 @@ public class Node implements Serializable {
         if (validationMode) {
             this.remainingTimeListeningOnCurrentChannel = this.channelListeningTime;
         } else {
-            this.remainingTimeListeningOnCurrentChannel = 10;
+            this.remainingTimeListeningOnCurrentChannel = 50;
         }
         if (channelListeningOn > maximumChannel) {
             channelListeningOn = 1;
@@ -231,7 +237,7 @@ public class Node implements Serializable {
         if (validationMode) {
             this.timeToNextTransmissionEvent = this.backoffPeriodOfTransmission;
         } else {
-            this.timeToNextTransmissionEvent = getrandomTime(10, 20); //maximum of 20 ms
+            this.timeToNextTransmissionEvent = getrandomTime(15, 20); //maximum of 20 ms
         }
         if (this.firstMessageStaged) {
             sendingHistory.add("5-" + String.valueOf(Math.round(simulationTime * 10)));

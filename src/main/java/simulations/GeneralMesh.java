@@ -46,6 +46,8 @@ public class GeneralMesh implements Serializable {
 
 
     //attributes
+    public int minimumWaitTime;
+    public int maximumWaitTime;
     private List<Node> nodes = new ArrayList<>();
     private double distanceBetweenNodes;
     private double broadcastRadius;
@@ -58,14 +60,16 @@ public class GeneralMesh implements Serializable {
 
 
     //constructor and specialised initializers for configurations
-    public GeneralMesh(int numberOfNodes, double broadcastRadius, double distanceBetweenNodes, int numberOfMessagesToBeSent) throws Exception {
+    public GeneralMesh(int numberOfNodes, double broadcastRadius, double distanceBetweenNodes, int numberOfMessagesToBeSent, int minimumWaitTime, int maximumWaitTime) throws Exception {
         this.numberOfMessagesToBeSent = numberOfMessagesToBeSent;
         this.distanceBetweenNodes = distanceBetweenNodes;
         this.broadcastRadius = broadcastRadius;
         this.numberOfNodes = numberOfNodes;
+        this.minimumWaitTime = minimumWaitTime;
+        this.maximumWaitTime = maximumWaitTime;
 
         //gateway always connect to the first node in the node list
-        gateway = new GatewayNode(-1, numberOfMessagesToBeSent, numberOfNodes);
+        gateway = new GatewayNode(-1, minimumWaitTime, maximumWaitTime, numberOfMessagesToBeSent, numberOfNodes);
 
     }
 
@@ -90,7 +94,7 @@ public class GeneralMesh implements Serializable {
         nodes.add(gateway);
         //instantiate list of nodes
         for (int i = 0; i < numberOfNodes - 1; i++) {
-            Node newNode = new Node(i);
+            Node newNode = new Node(i, minimumWaitTime, maximumWaitTime);
             nodes.add(newNode);
         }
         int numberOfNodesReachablePerSide = (int)Math.floor(broadcastRadius / distanceBetweenNodes);
@@ -306,7 +310,7 @@ public class GeneralMesh implements Serializable {
             totalSuccessfulReceivedMessages += node.receivedMessages.size();
             totalCorruptedReceivedMessages += node.receiveFailureDueToCorrupted.size();
         }
-        return new MessageYield(new ArrayList<>(gateway.sentMessages), new ArrayList<>(gateway.receivedMessages), nodes.size(), totalSuccessfulReceivedMessages, totalCorruptedReceivedMessages);
+        return new MessageYield(new ArrayList<>(gateway.sentMessages), new ArrayList<>(gateway.receivedMessages), nodes.size(), totalSuccessfulReceivedMessages, totalCorruptedReceivedMessages, gateway.minimumWaitTime, gateway.maximumWaitTime);
     }
     public void printState() {
         for (Node node : nodes) {

@@ -47,7 +47,9 @@ public class AverageRTTCanvas  extends JPanel {
         }
 
         //marking axis
-        g.drawString("No. of Nodes", SIDE_OF_GRAPH, BOTTOM_OF_GRAPH + 20);
+        g.drawString("No. of Nodes", SIDE_OF_GRAPH - 20, BOTTOM_OF_GRAPH + 20);
+        g.drawString("min wait time", SIDE_OF_GRAPH - 20, BOTTOM_OF_GRAPH + 40);
+        g.drawString("max wait time", SIDE_OF_GRAPH - 20, BOTTOM_OF_GRAPH + 60);
         g.drawString("Average", SIDE_OF_GRAPH - 140, BOTTOM_OF_GRAPH - 20);
         g.drawString("RTT (ms)", SIDE_OF_GRAPH - 140, BOTTOM_OF_GRAPH);
         //drawing results
@@ -74,6 +76,8 @@ public class AverageRTTCanvas  extends JPanel {
 
             g.setColor(Color.BLACK);
             g.drawString(String.valueOf(yield.numberOfNodes), currentX, BOTTOM_OF_GRAPH + 20);
+            g.drawString(String.valueOf(yield.minimumWaitTime), currentX, BOTTOM_OF_GRAPH + 40);
+            g.drawString(String.valueOf(yield.maximumWaitTime), currentX, BOTTOM_OF_GRAPH + 60);
             g.drawString(String.format("%d", averageRTT), currentX, BOTTOM_OF_GRAPH - heightOfAverageRTT - 20);
             g.drawString(String.format("%d", maxRTT), currentX + 20, BOTTOM_OF_GRAPH - heightOfMaxRTT - 20);
             g.drawString(String.format("%d", minRTT), currentX + 20 * 2, BOTTOM_OF_GRAPH - heightOfMinRTT - 20);
